@@ -1,0 +1,100 @@
+<html>
+  <head>
+    <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+    <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY" async="" defer="defer"></script>
+    <script type='text/javascript'>
+     google.charts.load('current', {
+       'packages': ['geochart'],
+       // Note: you will need to get a mapsApiKey for your project.
+       // See: https://developers.google.com/chart/interactive/docs/basic_load_libs#load-settings
+       'mapsApiKey': 'AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY'
+     });
+     google.charts.setOnLoadCallback(drawMarkersMap);
+
+    //   function drawMarkersMap() {
+    //   var data = google.visualization.arrayToDataTable([
+    //     ['City',   'Population', 'Area'],
+    //     ['Rome',      2761477,    1285.31],
+    //     ['Milan',     1324110,    181.76],
+    //     ['Naples',    959574,     117.27],
+    //     ['Turin',     907563,     130.17],
+    //     ['Palermo',   655875,     158.9],
+    //     ['Genoa',     607906,     243.60],
+    //     ['Bologna',   380181,     140.7],
+    //     ['Florence',  371282,     102.41],
+    //     ['Fiumicino', 67370,      213.44],
+    //     ['Anzio',     52192,      43.43],
+    //     ['Ciampino',  38262,      11]
+    //   ]);
+      function drawMarkersMap() {
+        var data = google.visualization.arrayToDataTable([
+          ['State', 'Population', 'Area'],
+          ['US-AL', 1, 51],
+          ['US-AK', 2, 50],
+          ['US-AZ', 3, 49],
+          ['US-AR', 4, 48],
+          ['US-CA', 5, 47],
+          ['US-CO', 6, 46],
+          ['US-CT', 7, 45],
+          ['US-DE', 8, 44],
+          ['US-DC', 9, 43],
+          ['US-FL', 10, 42],
+          ['US-GA', 11, 41],
+          ['US-HI', 12, 40],
+          ['US-ID', 13, 39],
+          ['US-IL', 14, 38],
+          ['US-IN', 15, 37],
+          ['US-IA', 16, 36],
+          ['US-KS', 17, 35],
+          ['US-KY', 18, 34],
+          ['US-LA', 19, 33],
+          ['US-ME', 20, 32],
+          ['US-MT', 21, 31],
+          ['US-NE', 22, 30],
+          ['US-NV', 23, 29],
+          ['US-NH', 24, 28],
+          ['US-NJ', 25, 27],
+          ['US-NM', 26, 26],
+          ['US-NY', 27, 25],
+          ['US-NC', 28, 24],
+          ['US-ND', 29, 23],
+          ['US-OH', 30, 22],
+          ['US-OK', 31, 21],
+          ['US-OR', 32, 20],
+          ['US-MD', 33, 19],
+          ['US-MA', 34, 18],
+          ['US-MI', 35, 17],
+          ['US-MN', 36, 16],
+          ['US-MS', 37, 15],
+          ['US-MO', 38, 14],
+          ['US-PA', 39, 13],
+          ['US-RI', 40, 12],
+          ['US-SC', 41, 11],
+          ['US-SD', 42, 10],
+          ['US-TN', 43, 9],
+          ['US-TX', 44, 8],
+          ['US-UT', 45, 7],
+          ['US-VT', 46, 6],
+          ['US-VA', 47, 5],
+          ['US-WA', 48, 4],
+          ['US-WV', 49, 3],
+          ['US-WI', 50, 2],
+          ['US-WY', 51, 1]
+        ]);
+
+      var options = {
+        region: 'US', //'IT',
+        resolution: 'provinces',
+        displayMode: 'markers',
+        colorAxis: {colors: ['green', 'blue']}
+      };
+
+      var chart = new google.visualization.GeoChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+    };
+    </script>
+  </head>
+  <body>
+    <div id="chart_div" style="width: 900px; height: 500px;"></div>
+  </body>
+</html>
