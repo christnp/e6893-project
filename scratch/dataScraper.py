@@ -9,41 +9,12 @@ import ftplib
 import os
 import sys
 
+
+################################# VEG HEALTH #################################
 # vegitation health data source top level; weekly NetCDF *.VH.nc files for VHI, 
 # TCI, and VCI features
-# 
-# vh_source_server = "ftp.star.nesdis.noaa.gov"
-# vh_source_top = "/pub/corp/scsb/wguo/data/Blended_VH_4km/VH/"
+# https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_ftp.php
 vh_src_url = "ftp://ftp.star.nesdis.noaa.gov/pub/corp/scsb/wguo/data/Blended_VH_4km/VH/"
-
-# CMIP-5 LOCA datasource top level; sub directories for each model and 1x1 or 
-# 16th scale, daily NetCDF .nc files. The variables in the VHP file are saved as 
-# scaled 16-bits integers. 
-# 
-#|-- LOCA_2016-04-02/	                        Level 0 (l0)
-#       |-- {model name1}                        Level 1 (l1)
-#       |        |-- 16th (degree)                Level 2 (l2)
-#       |        |   |-- historical                Level 3 (l3)
-#       |        |   |   |-- r1i1p1                 Level 4 (l4)
-#       |        |   |-- rcp45                     Level 3 (l3)
-#       |        |   |   |-- r8i1p1                 Level 4 (l4)
-#       |        |   |   |   |-- DTR                 Level 5 (l5)
-#       |        |   |   |   |-- pr (precipitation)  Level 5 (l5)
-#       |        |   |   |   |-- tasmax              Level 5 (l5)
-#       |        |   |   |   |-- tasmin              Level 5 (l5)
-#       |        |   |-- rcp85
-#       |        |   |   |-- r2i1p1
-#       |        |-- 1x1 (degree)
-#       |            |-- D.N.C.
-#       |-- {model name 2}
-c5_src_url = "ftp://gdo-dcp.ucllnl.org/pub/dcp/archive/cmip5/loca/LOCA_2016-04-02/"
-# c5_l0 = "LOCA_2016-04-02"
-# c5_11 = ""
-# c5_12 = ""
-# c5_13 = ""
-# c5_14 = ""
-# c5_15 = ""
-# A_2016-04-02/ACCESS1-3/16th/rcp85/r1i1p1/DTR/
 
 # Per https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH_doc/VHP_uguide_v2.0_2018_0727.pdf
 # Data arrays are in geographic projection (grid with equal latitude
@@ -75,10 +46,70 @@ c5_src_url = "ftp://gdo-dcp.ucllnl.org/pub/dcp/archive/cmip5/loca/LOCA_2016-04-0
 #  geospatial_lon_min = -180.0
 #  geospatial_lat_max = 75.024
 #  geospatial_lon_max = 180.0
+##############################################################################
 
+################################ CMIP-5 LOCA #################################
+# CMIP-5 LOCA datasource top level; sub directories for each model and 1x1 or 
+# 16th scale, daily NetCDF .nc files. The variables in the VHP file are saved as 
+# scaled 16-bits integers. 
+# https://gdo-dcp.ucllnl.org/downscaled_cmip_projections/dcpInterface.html#Projections:%20Complete%20Archives
+c5_src_url = "ftp://gdo-dcp.ucllnl.org/pub/dcp/archive/cmip5/loca/LOCA_2016-04-02/"
+# 
+#|-- LOCA_2016-04-02/	                        Level 0 (l0)
+#       |-- {model name1}                        Level 1 (l1)
+#       |        |-- 16th (km)                    Level 2 (l2)
+#       |        |   |-- historical                Level 3 (l3)
+#       |        |   |   |-- r1i1p1                 Level 4 (l4)
+#       |        |   |-- rcp45                     Level 3 (l3)
+#       |        |   |   |-- r8i1p1                 Level 4 (l4)
+#       |        |   |   |   |-- DTR                 Level 5 (l5)
+#       |        |   |   |   |-- pr (precipitation)  Level 5 (l5)
+#       |        |   |   |   |-- tasmax              Level 5 (l5)
+#       |        |   |   |   |-- tasmin              Level 5 (l5)
+#       |        |   |-- rcp85
+#       |        |   |   |-- r2i1p1
+#       |        |-- 1x1 (km)
+#       |            |-- D.N.C.
+#       |-- {model name 2}
+# c5_l0 = "LOCA_2016-04-02"
+# c5_11 = "ACCESS1-3"
+# c5_12 = "16th"
+# c5_13 = "rcp85"
+# c5_14 = "r1i1p1"
+# c5_15 = "DTR"
+# c5_l6 = {data}
+
+# Each LOCA climate projection has the following attributes:
+# Variables:
+#    precipitation, kg m-2 s-1 (TODO: convert to mm/day)
+#    minimum surface air temperature, °K (TODO: convert to °C)
+#    maximum surface air temperature, °K (TODO: convert to °C)
+#    missing value flag: 1E+30
+# Time:
+#    coverage: 1950-2099
+#    resolution: daily
+# Space:
+#    coverage: North American Land-Data Assimilation System domain (i.e. contiguous 
+#              U.S. plus portions of southern Canada and northern Mexico, spanning 
+#              25.125° N to 52.875° N and - 124.625° E to -67.000° E)
+#    resolution: 1/16° latitude-longitude (~ 6 km by 6 km)
+###############################################################################
 # scrape the website
 # https://towardsdatascience.com/how-to-web-scrape-with-python-in-4-minutes-bc49186a8460    
 # https://docs.python-guide.org/scenarios/scrape/
+
+def correct_model(model):
+    ''' Correct name of models that have two, to make search work '''
+    # list model as dict{dir name : search name}
+    models={"ACCESS1-0" : "ACCESS1.0", "ACCESS1-3" : "ACCESS1.3",
+            "CESM1-BGC" : "CESM1(BGC)", "CESM1-CAM5" : "CESM1(CAM5)",
+            "CESM1-CAM5-1-FV2" : "CESM1(CAM5.1,FV2)", "CESM1-WACCM" : "CESM1(WACCM)",
+            "CESM1-FASTCHEM" : "CESM1(FASTCHEM)", "bcc-csm1-1" : "BCC-CSM1.1",
+            "bcc-csm1-1-m" : "BCC-CSM1.1(m)", "inmcm4" : "INM-CM4"}  
+    # if the current model is one of the dict keys, change name
+    if model in models.keys():
+       return models[model]
+    return model
 
 def traverse(ftp, depth=0, start=None, blacklist=[]):
     """

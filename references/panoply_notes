@@ -1,0 +1,1 @@
+had to install openjdk-8-jdk to get Java 8 (Java 11 did not work). Use sudo update-alternatives --config java to change back to Java 11. 
