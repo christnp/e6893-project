@@ -13,7 +13,8 @@ Due TBD
 
 ## Notes (remove before final report)
 ### Summary
-
+https://automating-gis-processes.github.io/CSC18/lessons/L4/point-in-polygon.html
+0. https://pcmdi.llnl.gov/mips/cmip5/usefulDocuments.html
 1. VHI: https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_ftp.php
 2. LOCA: https://gdo-dcp.ucllnl.org/downscaled_cmip_projections/dcpInterface.html#Projections:%20Complete%20Archives
 3. https://marketnews.usda.gov/mnp/ls-report-config

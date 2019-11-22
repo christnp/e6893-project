@@ -55,6 +55,10 @@ vh_src_url = "ftp://ftp.star.nesdis.noaa.gov/pub/corp/scsb/wguo/data/Blended_VH_
 # https://gdo-dcp.ucllnl.org/downscaled_cmip_projections/dcpInterface.html#Projections:%20Complete%20Archives
 c5_src_url = "ftp://gdo-dcp.ucllnl.org/pub/dcp/archive/cmip5/loca/LOCA_2016-04-02/"
 # 
+# <activity>/<product>/<institute>/<model>/<experiment>/<frequency>/
+#   <modeling realm>/<variable name>/<ensemble member>/
+# <variable name>_<MIP table>_<model>_<experiment>_<ensemblemember>[_<temporal subset>].nc 
+# 
 #|-- LOCA_2016-04-02/	                        Level 0 (l0)
 #       |-- {model name1}                        Level 1 (l1)
 #       |        |-- 16th (km)                    Level 2 (l2)

@@ -44,42 +44,6 @@ x_lon_range = [getattr(fh,'START_LONGITUDE_RANGE'),
 y_height = fh.dimensions['HEIGHT'].size
 x_width = fh.dimensions['WIDTH'].size
 
-# https://carpentrieslab.github.io/python-aos-lesson/09-provenance/index.html
-# dset = xr.open_dataset(nc_path)
-# print(dset)
-# print(dset.dims['WIDTH'])
-# print(dset.values)
-# print(dset.var)
-# print(dset.coords)
-# get the data
-# product = dset.attrs['PRODUCT_NAME']
-# year = dset.attrs['YEAR']
-# week = dset.attrs['PERIOD_OF_YEAR']
-# y_lat_range = [dset.attrs['START_LATITUDE_RANGE'],
-#             dset.attrs['END_LATITUDE_RANGE']]
-# # start_lat = dset.attrs['START_LATITUDE_RANGE']
-# # end_lat = dset.attrs['END_LATITUDE_RANGE']
-# x_lon_range = [dset.attrs['START_LONGITUDE_RANGE'],
-#                 dset.attrs['END_LONGITUDE_RANGE']]
-# start_lon = dset.attrs['START_LONGITUDE_RANGE']
-# end_lon = dset.attrs['END_LONGITUDE_RANGE']
-# x_width = dset.dims['WIDTH']
-# y_height = dset.dims['HEIGHT']
-
-# vci_values = dset['VCI'].values
-# vci_attrs = dset['VCI'].attrs
-# tci_values = dset['TCI'].values
-# tci_attrs = dset['TCI'].attrs
-# vhi_values = dset['VHI'].values
-# vhi_attrs = dset['VHI'].attrs
-
-# vci_sf = vci_attrs['scale_factor']
-# vci_ao = vci_attrs['add_offset']
-# tci_sf = tci_attrs['scale_factor']
-# tci_ao = tci_attrs['add_offset']
-# vhi_sf = vhi_attrs['scale_factor']
-# vhi_ao = vhi_attrs['add_offset']
-
 x_step = (abs(x_lon_range[0])+abs(x_lon_range[1]))/x_width
 y_step = (abs(y_lat_range[0])+abs(y_lat_range[1]))/y_height
 
@@ -89,15 +53,11 @@ tci = fh['TCI']
 vci = fh['VCI']
 vhi = fh['VHI']
 
-
 # tci_array = np.empty(tci.shape,dtype=tci.dtype)
 # tci_array = np.asarray(tci[:][:],dtype=tci.dtype)
 
-
-
-
-
 if DEBUG > 1:
+    console += "\nData Specs \n"
     console += "product: {}\n".format(product)
     console += "year: {}\n".format(year)
     console += "week: {}\n".format(week)
@@ -115,18 +75,36 @@ if DEBUG > 1:
     console += "vhi.add_offset: {}\n".format(vhi.add_offset)
 
 
-print(console)
-sys.exit()
 
 # for now, just take a small chunk
-x_lon_bound = [-110,-90]    # some lon in the middle of the US (from W to E)
-y_lat_bound = [45,35]       # some lat in the middle of the US (from N to S)
+x_lon_bound = [-120.0,-119.0]    # some lon in the middle of the US (from W to E)
+y_lat_bound = [37.0,35.0]       # some lat in the middle of the US (from N to S)
 
-x_start = x_lon_bound[0]/x_lon_range[0] - 1
-x_stop = x_lon_bound[1]
-y_start = 
-y_end = 
+# y_lat_bound[1], y_lat_bound[0] = y_lat_bound[0], y_lat_bound[1]
+# y_lat_range[1], y_lat_range[0] = y_lat_range[0], y_lat_range[1]
+y_temp = [[y_lat_bound[1],y_lat_bound[0]],[y_lat_range[1],y_lat_range[0]]]
+x_start, x_end = np.round(np.interp(x_lon_bound,x_lon_range,[1,x_width])).astype(int)
+y_start, y_end = np.round(np.interp(y_temp[0],y_temp[1],[1,y_height])).astype(int)
 
+print((tci[x_start][y_start]))
+print((tci[x_end][y_start]))
+print((tci[x_end][y_end]))
+print((tci[x_start][y_end]))
+sys.exit()
+
+if DEBUG > 1:
+    console += "\nNew Start/Stop Indices \n"
+    console += "x_lon_range: {}\n".format(x_lon_range)
+    console += "x_lon_bound: {}\n".format(x_lon_bound)
+    console += "y_lat_range: {}\n".format(y_lat_range)
+    console += "y_lat_bound: {}\n".format(y_lat_bound)
+    console += "x_start: {}\n".format(x_start)
+    console += "x_end: {}\n".format(x_end)
+    console += "y_start: {}\n".format(y_start)
+    console += "y_end: {}\n".format(y_end)
+
+print(console)
+sys.exit()
 # print(tci[590][377]) # fh[var][y_height][x_width]
 # print(tci.range.dtype)
 # set scale factors and offsets (Value= scale_factor * (ScaledInteger - add_offset))
