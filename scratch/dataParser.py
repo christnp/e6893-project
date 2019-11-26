@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import pprint
+
 import os
 import sys
 
@@ -10,6 +12,38 @@ DEBUG = 3           # Debug levels. 0=no output, 1=results, 2=(1)+variables, 3=(
 console = ""        # Console output string
 
 project_base = "/home/christnp/Development/e6893/homework/e6893-project/"
+
+def boundCoords (coord_span, coord_step, coord_bounds,res=5):
+    '''
+    Takes a range/span of float values (coords) separated at a specific float
+    step/separation, returning a new range/span and start/stop indices for
+    the values that are with the specified bounds.
+    Input:
+        coord_span:     list of floats representing the initial range of values 
+                        (usually a two element list [min,max])
+        coord_step:     float representing the step size between values
+        coord_bounds:   two-element list of floats representing the bounds
+    Output:
+        new_idx:        two-element list representing the new start/stop indices
+        new_span:       two-element list representing the new range/span after
+                        coord_span has been bounded.
+    '''
+    try:
+        coords = np.arange(coord_span[0],coord_span[-1],coord_step)
+    except Exception as e:
+        print(e)
+
+    new_coords = []
+    idx = []
+    for i,coord in enumerate(coords):
+        if coord_bounds[0] <= coord <= coord_bounds[1]:
+            new_coords.append(np.around(coord,res))
+            idx.append(i)
+    new_span = [new_coords[0],new_coords[-1]]
+    new_idx = [idx[0],idx[-1]]
+
+    return new_idx,new_span
+
 #################################### CMIP/VH ###################################
 
 vh_dir = 'data/ftp.star.nesdis.noaa.gov-static/'
@@ -58,6 +92,8 @@ c5_lat_bands    = c5['lat_bnds']
 c5_time         = c5['time']
 c5_time_bnds    = c5['time_bnds']
 c5_pr           = c5['pr']
+
+c5_fill         = 1.0e+30
 
 
 if DEBUG > 1:
@@ -112,87 +148,137 @@ c5_y_lat_step = (abs(c5_y_lat_range[0])+abs(c5_y_lat_range[1]))/c5_y_height
 # float32 pr(time,lat,lon)
 
 ############################ bound the data ###################################
-#   - CMIP5 data is restricted to contiguous US and some southern CAN/northern MEX
 # https://boundingbox.klokantech.com/
-#[[[-125.2489197254,25.0753572133],[-66.6447598244,25.0753572133],[-66.6447598244,49.2604253419],[-125.2489197254,49.2604253419],[-125.2489197254,25.0753572133]]]
-
-lon_bounds = c5_x_lon_range
-lat_bounds = c5_y_lat_range
+#   - USA:  [[[-125.2489197254,25.0753572133],[-66.6447598244,25.0753572133],
+#               [-66.6447598244,49.2604253419],[-125.2489197254,49.2604253419],
+#               [-125.2489197254,25.0753572133]]]
 # https://gist.github.com/graydon/11198540
-# country boxes in format: [SW.lat, SW.lon, NE.lat, NE.lon]
-# lat_lower = SW.lat, lat_upper = NE.lat
-# lon_lower = SW.lon, lon_upper = NE.lon
+#   - country boxes in format: [SW.lat, SW.lon, NE.lat, NE.lon]
+#       => 
+#       => 
 tmp_boxes = json.load(open('country_boxes.json'))
 us_bounds = tmp_boxes['USA']
-lon_bounds = [us_bounds[1],us_bounds[3]]
-lat_bounds = [us_bounds[0],us_bounds[2]]
+lon_bounds = [us_bounds[1],us_bounds[3]] # lat.lower = SW.lat, lat.upper = NE.lat
+lat_bounds = [us_bounds[0],us_bounds[2]] # lon.lower = SW.lon, lon.upper = NE.lon
 
-def bounded (coord_span, coord_step, coord_bounds,res=5):
-    coords = np.arange(coord_span[0],coord_span[1],coord_step)
-    new_coords = []
-    idx = []
-    for i,coord in enumerate(coords):
-        if coord_bounds[0] <= coord <= coord_bounds[1]:
-            new_coords.append(np.around(coord,res))
-            idx.append(i)
-    new_span = [new_coords[0],new_coords[-1]]
-    new_idx = [idx[0],idx[-1]]
+# new longitude and width indices
+vh_x_lon_idx, vh_x_lon_range = boundCoords(vh_x_lon_range,vh_x_lon_step,lon_bounds)
+c5_x_lon_idx,c5_x_lon_range = boundCoords(c5_x_lon_range,c5_x_lon_step,lon_bounds)
+vh_x_width = abs(vh_x_lon_idx[1] - vh_x_lon_idx[0])
+c5_x_width = abs(c5_x_lon_idx[1] - c5_x_lon_idx[0])
 
-    return new_idx,new_span
+# new latitude and height indices
+vh_y_lat_idx, vh_y_lat_range = boundCoords(vh_y_lat_range,vh_y_lat_step,lat_bounds)
+c5_y_lat_idx, c5_y_lat_range = boundCoords(c5_y_lat_range,c5_y_lat_step,lat_bounds)
+vh_y_height = abs(vh_y_lat_idx[1] - vh_y_lat_idx[0])
+c5_y_height = abs(c5_y_lat_idx[1] - c5_y_lat_idx[0])
 
-
-# new vh longitude
-vh_x_lon_idx, vh_x_lon_range = bounded(vh_x_lon_range,vh_x_lon_step,lon_bounds)
-c5_x_lon_idx,c5_x_lon_range = bounded(c5_x_lon_range,c5_x_lon_step,lon_bounds)
-# print(vh_x_lon_idx)
+# print(c5_x_lon_range)
+# print(c5_y_lat_range)
 # print(vh_x_lon_range)
-
-# vh_lon = np.arange(vh_x_lon_range[0],vh_x_lon_range[1],vh_x_lon_step)
-# vh_x_lon_new = []
-# idx_lon = []
-# for i,lon in enumerate(vh_lon):
-#     if lon_bounds[0] <= lon <= lon_bounds[1]:
-#         vh_x_lon_new.append(lon)
-#         idx_lon.append(i)
-# vh_x_lon_range = [vh_x_lon_new[0],vh_x_lon_new[-1]]
-# vh_x_lon_idx = [idx_lon[0],idx_lon[-1]]
-
-# print(vh_x_lon_idx)
-# print(vh_x_lon_range)
-# sys.exit()
-# new vh latitude
-vh_y_lat_idx, vh_y_lat_range = bounded(vh_y_lat_range,vh_y_lat_step,lat_bounds)
-c5_y_lat_idx, c5_y_lat_range = bounded(c5_y_lat_range,c5_y_lat_step,lat_bounds)
-# print(vh_y_lat_idx)
 # print(vh_y_lat_range)
+# c5_pr_new = np.asarray(c5_pr[:][c5_x_lon_idx][c5_y_lat_idx])
+# add new mask
+# vh_mask = np.empty((vh_y_height,vh_x_width))
+# c5_mask = np.empty((c5_y_height,c5_x_width))
+# vh_mask = np.ones((vh_y_height,))
 
-# vh_lat = np.arange(vh_y_lat_range[0],vh_y_lat_range[1],vh_y_lat_step)
-# vh_y_lat_new = []
-# idy_lat = []
-# for i,lat in enumerate(vh_lat):
-#     if lat_bounds[0] <= lat <= lat_bounds[1]:
-#         vh_y_lat_new.append(lat)
-#         idy_lat.append(i)
-# vh_y_lat_range = [vh_y_lat_new[0],vh_y_lat_new[-1]]
-# vh_y_lat_idx = [idy_lat[0],idy_lat[-1]]
+# c5_mask = np.ones((c5_y_height,c5_x_width),dtype=int)
+# test = np.empty((c5_y_height,c5_x_width))
+# test.fill(10)
 
-# print(vh_y_lat_idx)
-# print(vh_y_lat_range)
+# #numpy.putmask(a, mask, values)¶
+# y0,y1 = c5_y_lat_idx[0], c5_y_lat_idx[1]
+# x0,x1 = c5_x_lon_idx[0], c5_x_lon_idx[1]
+# c5_mask[y0:y1,x0:x1] = 0
+# print(c5_mask[y0-1:y1+1,x0-1:x1+1])
+# print(test[y0-1:y1+1,x0-1:x1+1])
+# newX = np.ma.array(test, mask = c5_mask)
+# print(newX[y0-1:y1+1,x0-1:x1+1])
+# test2 = c5_mask[y0:y1,x0:x1]
+# print(test2.shape)
+
+# # tmp = np.zeros((c5_y_height,c5_x_width))
+# # c5_y_mask = [i for i in range(c5_y_lat_idx[0],c5_y_lat_idx[1]+1)]
+# # c5_x_mask = [i for i in range(c5_x_lon_idx[0],c5_x_lon_idx[1]+1)]
+# tt = []
+# for i,tslice in enumerate(c5_pr):
+#     tmp1 = tslice[y0:y1,x0:x1] 
+#     # print(tmp1)
+#     print(tmp1.shape)
+#     tt.append(tmp1)
+# ttt = np.empty((c5_y_height,c5_x_width,len(tt)))
+# ttt = np.dstack(tt)
+# ttt = np.moveaxis(ttt,2,0) # dstack makes 3rd axis the time axis, so swap
+# print(ttt.shape)
+# # x[~np.array(mask)]
+
+# # print(c5_mask.shape)
 # sys.exit()
-# vh_y_lat_new
 
-# vh_lat[::-1].sort() # np 
-# print(len(vh_lon))
-# print(vh_lon)
-# print(len(vh_lat))
-# print(vh_lat)
+################## apply bounds and convert C5 to weekly data ##################
+# week_arr = np.empty((7,c5_y_height,c5_x_width),dtype=np.float32)
+# mean_arr = np.empty((1,c5_y_height,c5_x_width),dtype=np.float32)
+week_arr = np.empty((7,c5_y_height,c5_x_width),dtype=np.float32)
+mean_arr = np.empty((1,c5_y_height,c5_x_width),dtype=np.float32)
+tmp = np.empty((c5_y_height,c5_x_width),dtype=np.float32)
+# indices for bounding
+y0,y1 = c5_y_lat_idx[0], c5_y_lat_idx[1]
+x0,x1 = c5_x_lon_idx[0], c5_x_lon_idx[1]
 
-print(c5_x_lon_range)
-print(c5_y_lat_range)
-print(vh_x_lon_range)
-print(vh_y_lat_range)
+week = 0
+day = 0.0
+week_list = []
+mean_list =[]
+for i,tslice in enumerate(c5_pr):
+    # print(tslice.filled()) # return masked array with fill values instead of --
+    # print(tslice[245][400])
+    # tmp = tmp + tslice
+    # bounded dataset for time i (mask removed and masked values set to 0.0)
+    tmp = tslice[y0:y1,x0:x1].filled(0.0) 
 
-sys.exit()
+    # ref: https://stackoverflow.com/questions/34357617/append-2d-array-to-3d-array-extending-third-dimension
+    week_list.append(tmp)
+    day += 1
+    if i%7 == 0 and i !=0: 
+        week += 1
+        # print("day: {0}, week: {1}".format(i,week))
+        # tmp = tmp / day
+        # print([x[245][400] for x in week_list]) # should repeat previous iters
+        week_arr = np.dstack(week_list)
+        # print("week_arr.shape = {}".format(week_arr.shape))
+        mean_arr = np.nanmean(week_arr,axis=2) # np.dstack() makes 3rd axis the stack axis, not the 1st axis
+        mean_list.append(mean_arr)
+        # print("tmp:{}".format(mean_arr[245][400]))
+        # reset local vars
+        # week_arr.fill(0.0) # REMOVED: this causes issues for arrary reuse
+        # mean_arr.fill(0.0) # REMOVED: this causes issues for arrary reuse
+        week_arr = np.empty((7,c5_y_height,c5_x_width),dtype=np.float32)
+        mean_arr = np.empty((1,c5_y_height,c5_x_width),dtype=np.float32)
+        day = 0.0
+        week_list = []
+# store list of weekly averages into a numpy array, and reshape (time,lat,lon)
+c5_pr_new = np.empty((c5_y_height,c5_x_width,52))
+c5_pr_new = np.dstack(mean_list)
+c5_pr_new = np.moveaxis(c5_pr_new,2,0) # dstack makes 3rd axis the time axis, so swap
+
+# getting memory error when allocating numpy arrays:
+# https://stackoverflow.com/questions/57507832/unable-to-allocate-array-with-shape-and-data-type
+
+# count = 0
+# for i,z in enumerate(c5_pr_new):
+#     if(i>0):
+#         break
+#     for y in z:
+#         for x in y:
+#             if x >= 0 and x < c5_fill:
+#                 count += 1
+# print(np.count_nonzero(c5_pr_new))
+
+# print(count)
+# print(c5_pr_new.shape)
+
+# sys.exit()
 ###############################################################################
 
 vh_json = {}
@@ -211,12 +297,12 @@ vh_json['attr'].append({
     'lat_step': vh_y_lat_step
 })
 
-print(vh_json)
+pprint.pprint(vh_json)
 
 c5_json = {}
 c5_json['type'] = 'pr'
 c5_json['attr'] = []
-c5_json['data'] = []
+c5_json['data'] = c5_pr_new
 
 c5_json['attr'].append({
     'year': c5_time[0],
@@ -229,11 +315,11 @@ c5_json['attr'].append({
     'lat_step': c5_y_lat_step
 })
 
+
 # precipitation, kg m-2 s-1 (converted to mm/day in 'Subset Request' interface)
 # minimum surface air temperature, °K (converted to °C in 'Subset Request' interface)
 # maximum surface air temperature, °K (converted to °C in 'Subset Request' interface)
-
-print(c5_json)
+pprint.pprint(c5_json)
 
 # print(c5_time_bnds[:][:])
 sys.exit()

@@ -12,7 +12,7 @@ import dataScraper
 #       * download from FTP server, as temp_[fname].nc on Google bucket
 #       * open temp_[fname].nc from Google bucket
 #       * parse files, storing data as local variables
-#       * transform/convert any data (i.e., convery x/y to lat/lon)
+#       * transform/convert any data (i.e., convert x/y to lat/lon)
 #       * bound data as necessary (i.e., get contiguous US states, weekly data)
 #       * store local vars in JSON file, save to bitbucket as temp_[fname].json
 #       * load temp JSON from bitbucket into Google BQ dataset/table

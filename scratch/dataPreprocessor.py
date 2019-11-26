@@ -62,5 +62,40 @@ oregon.reset_index(drop=True, inplace=True) # what does this do?
 # plotting 
 # ref: http://geopandas.org/mapping.html
 
+
+
+#######################################################################
+# Use Masked arrays an np.ndarray.nanmean for generating mean of county?
+# 1. https://docs.scipy.org/doc/numpy/reference/maskedarray.generic.html
+# 2. https://docs.scipy.org/doc/numpy/reference/generated/numpy.nanmean.html
+
+#numpy.putmask(a, mask, values)¶
+
+# tmp = np.empty((c5_y_height,c5_x_width))
+# tmp.fill(1.0e30)
+# print(tmp.shape)
+# print(tmp)
+# print(c5_pr[:].filled())
+
+# print("c5_y_lat_idx = {}".format(c5_y_lat_idx))
+# print("c5_x_lon_idx = {}".format(c5_x_lon_idx))
+# print(c5_y_lat_idx[0])
+# print(c5_y_lat_idx[1])
+# for y in range(c5_y_lat_idx[0],c5_y_lat_idx[1]):
+#     for x in range(c5_x_lon_idx[0],c5_x_lon_idx[1]):
+#         tmp[y][x] = 1
+
+# # tmp[c5_y_lat_idx[0]:c5_y_lat_idx[1]][c5_x_lon_idx[0]:c5_x_lon_idx[1]] = 1
+
+# print(tmp.shape)
+# print(tmp[0][c5_y_lat_idx[0]][:])
+# sys.exit()
+# for i in tmp:
+#     for x,j in enumerate(i):
+#         if x in range(c5_y_lat_idx[0],c5_y_lat_idx[1]):
+#             print(x)
+#             print(j[:])
+#             if j[0] != 0:
+#                 break
 if __name__ == "__main__":
     pass
