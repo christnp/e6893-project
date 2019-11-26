@@ -18,6 +18,7 @@ CONVERT_STATE_SHP = False
 STATE_DETAILED = False
 CONVERT_COUNTY_SHP = False
 COUNTY_DETAILED = False
+PLOT = False
 
 gj_base = "../data/geojson/"
 sh_base = "../data/shp/"
@@ -70,22 +71,27 @@ else:
         us_county = gpd.read_file(new_path, driver='GeoJSON')
 
 # print(us_county.columns)
-# Example for getting specific state data and plotting
-# ref: http://geopandas.org/mapping.html
-
+# Example for getting specific state data 
 # Columns: STATEFP, COUNTYFP, COUNTYNS, AFFGEOID, GEOID, NAME, LSAD, ALAND, AWATER, geometry
 state = us_county.loc[us_county['STATEFP']!='02']
 state = state.loc[state['STATEFP']!='15']
 # county = state.loc[state['NAME']=='Morrow'] # for Oregon
 county = state.loc[state['COUNTYFP']=='049']
 
-state['test'] = state.AWATER + state.ALAND # example of adding column for plot (see below)
-fig = plt.figure(1, figsize=(5,5), dpi=90)
-ax = fig.add_subplot(111)
-state.plot(ax=ax,column='test', legend=True,
-            legend_kwds={'label': "Total Area",
-                        'orientation': "horizontal"})
-plt.show()
+###########################################
+# TO PLOT CHOROPLETH CHART
+###########################################
+if PLOT:
+    # ref: http://geopandas.org/mapping.html
+    state['test'] = state.AWATER + state.ALAND # example of adding column for plot (see below)
+    fig = plt.figure(1, figsize=(5,5), dpi=90)
+    ax = fig.add_subplot(111)
+    state.plot(ax=ax,column='test', legend=True,
+                legend_kwds={'label': "Total Area",
+                            'orientation': "horizontal"})
+    plt.show()
+###########################################
+
 sys.exit()
 
 # Use shapley to get data for each county
