@@ -6,6 +6,11 @@
 Due TBD
 ```
 
+## To run Sphinx Doc Gen
+1. Navigate to src/doc and run 'make html'
+2. Start Python3 server: python -m http.server
+3. Navigate to 'http://localhost:8000/src/doc/_build/html/'
+
 ## TL;DR
 
 1. stuff

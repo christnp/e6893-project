@@ -298,7 +298,6 @@ def getVegHealthData(src_url,storage,blacklist=[]):
     # TODO: multithread file downloading?
     # The VH source is flat, so it is a simple download 
     vh_src = urlparse(vh_src_url)
-
     ftp_vh = ftpConnect(vh_src.netloc)
 
     # build a blacklist;
