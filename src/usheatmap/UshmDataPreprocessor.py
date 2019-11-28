@@ -62,11 +62,12 @@ class UshmDataPreprocessor():
         us_county = self.readGeoJSON(self.county_path)
 
         ####################### TODO: ###############################
-        # 0) import data from UshmParser.py
+        # 0) import data from UshmDataParser.py
         # 1) go through some counties, use shape to create mask
         #   a) develop np mask generator function
         #   b) apply mask to data from (0)
         # 2) average data values from (0) that are not masked 'np.nanmean(week_arr,axis=2)'
+        #   a) pick a small county and convince myself it is right (raw data lookup?)
         # 3) use results to plot choropleth plot as below (to convince) ourselves
         #   a) plot use methods below
         #   b) use panoply to confirm? will need a few neighboring counties...

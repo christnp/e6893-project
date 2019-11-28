@@ -9,7 +9,7 @@ import sys
 
 from netCDF4 import Dataset
 
-from CountryBoxes import CountryBoxes
+from usheatmap.CountryBoxes import CountryBoxes
 
 
 class UshmDataParser():
@@ -460,7 +460,7 @@ if __name__ == "__main__":
 
     if PARSE_VH:
         # ftp_loc = 'ftp://ftp.star.nesdis.noaa.gov/pub/corp/scsb/wguo/data/Blended_VH_4km/VH/VHP.G04.C07.NN.P2006001.VH.nc'
-        vh_dir = 'data/ftp.star.nesdis.noaa.gov-static/'
+        vh_dir = 'scratch/temp/ftp.star.nesdis.noaa.gov-static/'
         # vh_file = 'VHP.G04.C07.NN.P2006001.VH.nc'
         vh_path = os.path.join(project_base,vh_dir)
         files = [f for f in listdir(vh_path) if isfile(join(vh_path, f))]
