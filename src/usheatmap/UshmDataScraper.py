@@ -17,8 +17,10 @@ class UshmDataScraper():
     def __init__(self,project_base=''):
         """ docstring
         """
+        self.rpath = os.path.dirname(os.path.realpath(__file__))
+
         if not project_base:
-            self.project_base = "/home/christnp/Development/e6893/homework/e6893-project/"
+            self.project_base =  os.path.join(self.rpath,'temp')
         else:
             self.project_base = project_base
 
@@ -189,10 +191,15 @@ class UshmDataScraper():
 
         return ftp_handle
 
-    def ftpDownload(self,ftp_handle,ftp_path,blacklist=[],output_path=".",debug=0):
+    def ftpDownload(self,ftp_handle,ftp_path,blacklist=[],output_path="",debug=0):
         """
         docstring
         """
+        
+        if(output_path == ""):
+            output_path = os.path.join(self.rpath,".tmp")
+            print("WARNING: saving FTP data to \'{}\'".format(output_path))
+
         ####### LOCAL
         #  local directory for downloading the file
         if not os.path.exists(output_path):
@@ -331,7 +338,7 @@ class UshmDataScraper():
             # identify the vegetation health (VH) products
             vh_prods = [tgt for tgt in ftp_vh.nlst(vh_src.path) if ".VH." in tgt]
             # identify specific date (can be "YYYY" or "YYYYWW" or "" graps all years)
-            keep = [k for k in vh_prods if "P"+date in k]
+            keep = [k for k in vh_prods if "P"+date in k] # date as YYYYWWW where WWW is the week of the year
             # blacklist = [s for s in ftp_vh.nlst(vh_src.path) if not any(sub in s for sub in vh_prods)] 
             blacklist = [s for s in ftp_vh.nlst(vh_src.path) if not any(sub in s for sub in keep)] 
 

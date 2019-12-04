@@ -10,6 +10,8 @@ import sys
 from netCDF4 import Dataset
 
 from usheatmap.CountryBoxes import CountryBoxes
+# from UshmUtils import UshmUtils
+from usheatmap.UshmUtils import UshmUtils
 
 
 class UshmDataParser():
@@ -17,12 +19,21 @@ class UshmDataParser():
     docstring description
     """
     def __init__(self,project_base='',country='USA'):
+        
+        self.rpath = os.path.dirname(os.path.realpath(__file__))
+        # if project path not provided, make temp dir where this file resides
         if not project_base:
-            self.project_base = "/home/christnp/Development/e6893/homework/e6893-project/"
+            project_path = os.path.join(self.rpath,".tmp")
+            if not os.path.exists(project_path):
+                os.makedirs(project_path)
+            print("WARNING: saving FTP data to \'{}\'".format(project_path))
+            self.project_base = project_path
         else:
             self.project_base = project_base
         
         self.country = country
+        
+        self.utils = UshmUtils()
         
 
 
@@ -40,11 +51,16 @@ class UshmDataParser():
             new_idx:        two-element list representing the new start/stop indices
             new_span:       two-element list representing the new range/span after
                             coord_span has been bounded.
+            new_coords:     coordinate list after bounds applied (len(arange(new_span,coord_step)))
         '''
         try:
-            coords = np.arange(coord_span[0],coord_span[-1],coord_step)
+            coords = np.arange(coord_span[0],coord_span[-1]-coord_step,coord_step)
         except Exception as e:
             print(e)
+        
+        # print("len(coords): {}".format(len(coords)))
+        # print("coords: ({},{})".format(coord_span[0],coord_span[1]))
+        # print("step: {}".format(coord_step))
 
         new_coords = []
         idx = []
@@ -54,8 +70,8 @@ class UshmDataParser():
                 idx.append(i)
         new_span = [new_coords[0],new_coords[-1]]
         new_idx = [idx[0],idx[-1]]
-
-        return new_idx,new_span
+        # need to remove the last element of new_coords
+        return new_idx,new_span,new_coords[:-1 or None]
 
     def getDateCmip(self,c5_date,debug=0):
         """
@@ -75,7 +91,7 @@ class UshmDataParser():
             print("Dates for CMIP-5: \n{}".format(c5_date))
         return c5_date
 
-    def getBoundedCmip(self,c5_obj,height,width,lat=[-90,90],lon=[-180,180],debug=0):
+    def getBoundedCmip(self,c5_obj,height,width,fill=-999,lat=[-90,90],lon=[-180,180],debug=0):
         """
         docstring desription
         """
@@ -83,10 +99,11 @@ class UshmDataParser():
         y0,y1 = lat[0], lat[1]
         x0,x1 = lon[0], lon[1]
         
-        c5_new = np.empty((52,height,width),dtype=np.float32)
-        week_arr = np.empty((7,height,width),dtype=np.float32)
-        mean_arr = np.empty((1,height,width),dtype=np.float32)
-        tmp = np.empty((height,width),dtype=np.float32)
+        c5_new = np.ma.empty((52,height,width),dtype=np.float32)
+        c5_tmp = np.ma.empty((1,height,width),dtype=np.float32)
+        week_arr = np.ma.empty((7,height,width),dtype=np.float32)
+        mean_arr = np.ma.empty((1,height,width),dtype=np.float32)
+        tmp = np.ma.empty((height,width),dtype=np.float32)
 
         week = 0
         day = 0.0
@@ -94,7 +111,9 @@ class UshmDataParser():
         mean_list =[]
         for i,tslice in enumerate(c5_obj):
             # bounded dataset for time i (mask removed and masked values set to 0.0)
-            tmp = tslice[y0:y1,x0:x1].filled(0.0) 
+            tmp = tslice[y0:y1,x0:x1]#.filled(np.nan) # can add any number to .filled(#)
+            mask = tmp.mask
+            fill = tmp.fill_value
 
             # ref: https://stackoverflow.com/questions/34357617/append-2d-array-to-3d-array-extending-third-dimension
             week_list.append(tmp)
@@ -102,19 +121,30 @@ class UshmDataParser():
             if i%7 == 0 and i !=0: 
                 week += 1
                 # print("day: {0}, week: {1}".format(i,week))
-                week_arr = np.dstack(week_list)
-                mean_arr = np.nanmean(week_arr,axis=2) # np.dstack() makes 3rd axis the stack axis, not the 1st axis
+                # taking mean over 7-days to get weekly resolution
+                week_arr = np.ma.dstack(week_list) # np.dstack() makes 3rd axis the stack axis, not the 1st axis
+                # mean_arr = np.nanmean(week_arr,axis=2) # np.dstack() makes 3rd axis the stack axis, not the 1st axis
+                mean_arr = np.ma.mean(week_arr,axis=2) 
+                # print(mean_arr.mask)
                 mean_list.append(mean_arr)
+
+                c5_tmp = np.ma.concatenate((c5_tmp,np.ma.expand_dims(mean_arr,axis=0)))
+
                 # reset local vars
-                week_arr = np.empty((7,height,width),dtype=np.float32)
-                mean_arr = np.empty((1,height,width),dtype=np.float32)
+                week_arr = np.ma.empty((7,height,width),dtype=np.float32)
+                mean_arr = np.ma.empty((1,height,width),dtype=np.float32)
                 day = 0.0
                 week_list = []
 
         # store list of weekly averages into a numpy array, and reshape (time,lat,lon)
-        c5_new = np.dstack(mean_list)
+        c5_new = np.ma.dstack(mean_list)
+        c5_new = np.moveaxis(c5_new,2,0) # dstack makes 3rd axis the time axis, so swap
+        # apply mask
+        # ref: https://stackoverflow.com/questions/29165820/apply-mask-array-2d-to-3d
+        # mask_new = c5_new*mask[np.newaxis,:,:] # use broadcasting to create a new 3D mask
+        # c5_new = np.ma.array(c5_new,mask=mask_new,fill_value=fill)
 
-        return np.moveaxis(c5_new,2,0)  # dstack makes 3rd axis the time axis, so swap
+        return c5_new 
 
     def convertLonTo180(self):
         """
@@ -163,11 +193,21 @@ class UshmDataParser():
         vh_tci      = vh['TCI'][:]
         vh_vhi_attr = vh['VHI']
         vh_vhi      = vh['VHI'][:]
+        #variable attributes
+        vh_vci_prod_name = vh_vci_attr.long_name
+        vh_tci_prod_name = vh_tci_attr.long_name
+        vh_vhi_prod_name = vh_vhi_attr.long_name
+        vh_vci_units = vh_vci_attr.units
+        vh_tci_units = vh_tci_attr.units
+        vh_vhi_units = vh_vhi_attr.units
+        vh_vci_fill = np.float(vh_vci_attr._FillValue)    # int16 not JSON serializable
+        vh_tci_fill = np.float(vh_tci_attr._FillValue)    # int16 not JSON serializable
+        vh_vhi_fill = np.float(vh_vhi_attr._FillValue)    # int16 not JSON serializable
 
         vh_x_lon_step = (vh_x_lon_range[1]-vh_x_lon_range[0])/vh_x_width
         vh_y_lat_step = (vh_y_lat_range[1]-vh_y_lat_range[0])/vh_y_height
 
-        console = "Parsing \'{}\' data...\n".format(vh_product)     # Console output string
+        console = "[{}] Parsing \'{}\' data...\n".format(self.utils.timestamp(),vh_product)     # Console output string
 
         if debug > 1:
             # VH
@@ -193,7 +233,7 @@ class UshmDataParser():
         vh_date = []
         # res = datetime.strptime("2018 W30 w1", "%Y %W w%w")
         d = "{}-{}-0".format(vh_year,vh_week) # set for YYYY-MM-Sunday
-        vh_date.append(datetime.strptime(d, "%Y-%W-%w").date())
+        vh_date.append(datetime.strptime(d, "%Y-%W-%w").date().strftime('%Y-%m-%d %H:%M:%S'))#.strftime('%Y-%m-%d'))
 
         ######################### TODO: MAKE THIS A GLOBAL #####################
         # tmp_boxes = json.load(open('../../scratch/country_boxes.json'))
@@ -204,61 +244,88 @@ class UshmDataParser():
         ############################################################################
         
         # new longitude and width indices
-        vh_x_lon_idx, vh_x_lon_range = self.boundCoords(vh_x_lon_range,vh_x_lon_step,lon_bounds)
+        vh_x_lon_idx, vh_x_lon_range,vh_x_lon = self.boundCoords(vh_x_lon_range,vh_x_lon_step,lon_bounds)
         vh_x_width = abs(vh_x_lon_idx[1] - vh_x_lon_idx[0])
 
         # new latitude and height indices
-        vh_y_lat_idx, vh_y_lat_range = self.boundCoords(vh_y_lat_range,vh_y_lat_step,lat_bounds)
+        vh_y_lat_idx, vh_y_lat_range,vh_y_lat = self.boundCoords(vh_y_lat_range,vh_y_lat_step,lat_bounds)
         vh_y_height = abs(vh_y_lat_idx[1] - vh_y_lat_idx[0])
         
         ############## apply bounds and convert VH to weekly data ##############
-        vh_vci_new = np.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
-        vh_tci_new = np.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
-        vh_vhi_new = np.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
+        vh_vci_new = np.ma.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
+        vh_tci_new = np.ma.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
+        vh_vhi_new = np.ma.empty((1,vh_y_height,vh_x_width),dtype=np.float32)
         # indices for bounding
         y0,y1 = vh_y_lat_idx[0], vh_y_lat_idx[1]
         x0,x1 = vh_x_lon_idx[0], vh_x_lon_idx[1]
         # new matrices using slicing
-        vh_vci_new[:] = vh_vci[y0:y1,x0:x1].filled(0.0) 
-        vh_tci_new[:] = vh_tci[y0:y1,x0:x1].filled(0.0) 
-        vh_vhi_new[:] = vh_vhi[y0:y1,x0:x1].filled(0.0) 
+        vh_vci_new[:] = vh_vci[y0:y1,x0:x1]#.filled() # can add any number to .filled(#)
+        vh_tci_new[:] = vh_tci[y0:y1,x0:x1]#.filled() # can add any number to .filled(#)
+        vh_vhi_new[:] = vh_vhi[y0:y1,x0:x1]#.filled() # can add any number to .filled(#)
         ########################## FORMAT OUTPUT ###############################
         vh_json = {}
 
         vh_json['type'] = vh_product
         vh_json['attr'] = []
-        vh_json['vci']  = []
-        vh_json['tci']  = []
-        vh_json['vhi']  = []
+        vh_json['prod']  = []
 
         vh_json['attr'].append({
-            'year':         vh_date[0].year,
-            'week':         vh_date,
+            # 'year':         vh_date[0].year,
+            'date':         vh_date,
             'time_dim':     len(vh_date),
+            'lon':          vh_x_lon,
             'lon_start':    vh_x_lon_range[0],
             'lon_end':      vh_x_lon_range[1],
             'lon_step':     vh_x_lon_step,
-            'lon_dims':     [],
+            'lon_dims':     vh_x_width,
             'lon_units':    [],
+            'lat':          vh_y_lat,
             'lat_start':    vh_y_lat_range[0],
             'lat_end':      vh_y_lat_range[1],
             'lat_step':     vh_y_lat_step,
-            'lat_dims':     [], 
+            'lat_dims':     vh_y_height, 
             'lat_units':    []
         })
-
-        vh_json['vci'].append({
-            'units':   [],
-            'data':   vh_vci_new
+        vh_json['prod'].append({
+            'type':     vh_vci_prod_name,
+            'units':    vh_vci_units,
+            'mask':     vh_vci_new.mask.tolist(),
+            'fill':     vh_vci_fill,
+            'data':     vh_vci_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
-        vh_json['tci'].append({
-            'units':   [],
-            'data':   vh_tci_new
+        vh_json['prod'].append({
+            'type':     vh_tci_prod_name,
+            'units':    vh_tci_units,
+            'mask':     vh_tci_new.mask.tolist(),
+            'fill':     vh_tci_fill,
+            'data':     vh_tci_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
-        vh_json['vhi'].append({
-            'units':   [],
-            'data':   vh_vhi_new
+        vh_json['prod'].append({
+            'type':     vh_vhi_prod_name,
+            'units':    vh_vhi_units,
+            'mask':     vh_vhi_new.mask.tolist(),
+            'fill':     vh_vhi_fill,
+            'data':     vh_vhi_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
+        
+        # vh_json['vci'].append({
+        #     'type':     vh_vci_prod_name,
+        #     'units':    vh_vci_units,
+        #     'fill':     vh_vci_fill,
+        #     'data':     vh_vci_new.tolist() # to get np.ndarray do np.array(json['data'])
+        # })
+        # vh_json['tci'].append({
+        #     'type':     vh_tci_prod_name,
+        #     'units':    vh_tci_units,
+        #     'fill':     vh_tci_fill,
+        #     'data':     vh_tci_new.tolist() # to get np.ndarray do np.array(json['data'])
+        # })
+        # vh_json['vhi'].append({
+        #     'type':     vh_vhi_prod_name,
+        #     'units':    vh_vhi_units,
+        #     'fill':     vh_vhi_fill,
+        #     'data':     vh_vhi_new.tolist() # to get np.ndarray do np.array(json['data'])
+        # })
 
         if debug > 1:
             pprint.pprint(vh_json)
@@ -288,18 +355,19 @@ class UshmDataParser():
         c5_time_dim     = c5.dimensions['time'].size
         # variables
         c5_lon          = c5['lon'][:]      # units: degrees_east
-        c5_lon_units    = c5['lon'].units
+        c5_x_lon_units    = c5['lon'].units
         # c5_lon_bands    = c5['lon_bnds']
         c5_lat          = c5['lat'][:]      # units: degrees_north
-        c5_lat_units    = c5['lat'].units
+        c5_y_lat_units    = c5['lat'].units
         # c5_lat_bands    = c5['lat_bnds']
         c5_time         = c5['time'][:]        # units: days since 1900-01-01
         c5_time_units   = c5['time'].units
         # c5_time_bnds    = c5['time_bnds']
-        c5_prod           = c5[product]
-        c5_prod_units     = c5[product].units
-        c5_prod_fill      = c5[product]._FillValue
-        c5_prod_name     = c5[product].long_name
+        c5_prod         = c5[product]
+        c5_prod_units   = c5[product].units
+        c5_prod_fill    = np.float(c5[product]._FillValue)
+        # c5_prod_name    = c5[product].long_name
+        c5_prod_name    = product
         
         ######################## convert the data ##############################
         #   - to proper coordinate range (-180 to 180, -90 to 90)
@@ -314,18 +382,18 @@ class UshmDataParser():
         c5_y_lat_new = ((np.asarray(c5_lat[:]) - 90) % 180) - 90
         c5_y_lat_range = [c5_y_lat_new[0],c5_y_lat_new[-1]]
         # update step
+        # TODO: abs() is required because step < 0 does not seem to work in boundCoords()
         c5_x_lon_step = (abs(c5_x_lon_range[0])+abs(c5_x_lon_range[1]))/c5_x_width
         c5_y_lat_step = (abs(c5_y_lat_range[0])+abs(c5_y_lat_range[1]))/c5_y_height
-
         # convert days since 1900.01.01 to datetime
         # ref: https://stackoverflow.com/questions/38691545/python-convert-days-since-1990-to-datetime-object
         c5_date = []
         for i in range(0,c5_time_dim):
             start = date(1900,1,1)      # This is the "days since" part
             delta = timedelta(c5_time[i])     # Create a time delta object from the number of days
-            c5_date.append(start + delta)      # Add the specified number of days to 1990
+            c5_date.append((start + delta).strftime('%Y-%m-%d %H:%M:%S'))#.strftime('%Y-%m-%d'))      # Add the specified number of days to 1990
 
-        console = "Parsing CMIP-5 {} \'{}\' data...\n".format(c5_model_id,c5_prod_name)     # Console output string
+        console = "[{}] Parsing CMIP-5 {} \'{}\' data...\n".format(self.utils.timestamp(),c5_model_id,c5_prod_name)     # Console output string
         if debug > 1:
             # CMIP5-LOCA
             console += "\nCMIP5-LOCA Specs \n"
@@ -350,27 +418,27 @@ class UshmDataParser():
         lat_bounds = [us_bounds[0],us_bounds[2]] # lon.lower = SW.lon, lon.upper = NE.lon
 
         # new longitude and width indices
-        # vh_x_lon_idx, vh_x_lon_range = boundCoords(vh_x_lon_range,vh_x_lon_step,lon_bounds)
-        c5_x_lon_idx,c5_x_lon_range = self.boundCoords(c5_x_lon_range,c5_x_lon_step,lon_bounds)
-        # vh_x_width = abs(vh_x_lon_idx[1] - vh_x_lon_idx[0])
+        c5_x_lon_idx,c5_x_lon_range,c5_x_lon = self.boundCoords(c5_x_lon_range,c5_x_lon_step,lon_bounds)
         c5_x_width = abs(c5_x_lon_idx[1] - c5_x_lon_idx[0])
 
         # new latitude and height indices
-        # vh_y_lat_idx, vh_y_lat_range = boundCoords(vh_y_lat_range,vh_y_lat_step,lat_bounds)
-        c5_y_lat_idx, c5_y_lat_range = self.boundCoords(c5_y_lat_range,c5_y_lat_step,lat_bounds)
-        # vh_y_height = abs(vh_y_lat_idx[1] - vh_y_lat_idx[0])
+        c5_y_lat_idx, c5_y_lat_range,c5_y_lat = self.boundCoords(c5_y_lat_range,c5_y_lat_step,lat_bounds)
         c5_y_height = abs(c5_y_lat_idx[1] - c5_y_lat_idx[0])
 
+        # print(c5_x_lon_idx)
+        # print([c5_x_lon[0],c5_x_lon[-1]])
+        # print(c5_x_width)
+        # print(c5_y_lat_idx)
+        # print([c5_y_lat[0],c5_y_lat[-1]])
+        # print(c5_y_height)
         ############## apply bounds and convert C5 to weekly data ##############
         c5_prod_new = np.empty((c5_y_height,c5_x_width,52))
-        # c5_tasmin_new = np.empty((c5_y_height,c5_x_width,52))
-        # c5_tasmax_new = np.empty((c5_y_height,c5_x_width,52))
-        # c5_dtr_new = np.empty((c5_y_height,c5_x_width,52))
-       
+        # print(c5_prod_new.shape)
         # use helper function to get CMIP date and bounded data
         c5_date = self.getDateCmip(c5_date,debug=debug)
         c5_prod_new = self.getBoundedCmip(c5_prod,c5_y_height,c5_x_width,
                                             lat=c5_y_lat_idx,lon=c5_x_lon_idx,debug=debug)
+
         # c5_tasmin_new = self.getBoundedCmip(c5_tasmin,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
         # c5_tasmax_new = self.getBoundedCmip(c5_tasmax,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
         # c5_dtr_new = self.getBoundedCmip(c5_dtr,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
@@ -383,31 +451,35 @@ class UshmDataParser():
 
         c5_json['type']     = c5_model_id # TODO: make this cmip-5 + model
         c5_json['attr']     = []    # global attributes
-        c5_json['product']       = []    # pr specific
+        c5_json['prod']       = []    # pr specific
         # c5_json['tasmin']   = []    # tasmin specific
         # c5_json['tasmax']   = []    # tasmax specific
         # c5_json['dtr']      = []    # dtr specific
 
         c5_json['attr'].append({
-            'year':         c5_date[0].year,
-            'week':         c5_date,
+            # 'year':         c5_date[0].year,
+            'date':         c5_date,
             'time_dim':     len(c5_date),
+            'lon':          c5_x_lon,
             'lon_start':    c5_x_lon_range[0],
             'lon_end':      c5_x_lon_range[1],
             'lon_step':     c5_x_lon_step,
-            'lon_dims':      c5_x_width,
-            'lon_units':    c5_lon_units,
+            'lon_dims':     c5_x_width,
+            'lon_units':    c5_x_lon_units,
+            'lat':          c5_y_lat,
             'lat_start':    c5_y_lat_range[0],
             'lat_end':      c5_y_lat_range[1],
             'lat_step':     c5_y_lat_step,
             'lat_dims':     c5_y_height,
-            'lat_units':    c5_lat_units
+            'lat_units':    c5_y_lat_units
         })
 
-        c5_json['product'].append({
+        c5_json['prod'].append({
             'type':     c5_prod_name,
             'units':    c5_prod_units,
-            'data':     c5_prod_new
+            'fill':     c5_prod_new.fill_value,
+            'mask':     c5_prod_new.mask.tolist(),
+            'data':     c5_prod_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
         # c5_json['tasmin'].append({
         #     'units':    [],
