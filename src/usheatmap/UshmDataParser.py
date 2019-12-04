@@ -179,10 +179,10 @@ class UshmDataParser():
         vh_product     = getattr(vh,'PRODUCT_NAME')
         vh_year        = getattr(vh,'YEAR')
         vh_week        = getattr(vh,'PERIOD_OF_YEAR')
-        vh_y_lat_range = [getattr(vh,'START_LATITUDE_RANGE'), 
-                            getattr(vh,'END_LATITUDE_RANGE')]
-        vh_x_lon_range = [getattr(vh,'START_LONGITUDE_RANGE'), 
-                            getattr(vh,'END_LONGITUDE_RANGE')]
+        vh_y_lat_range = [getattr(vh,'geospatial_lat_min'), 
+                            getattr(vh,'geospatial_lat_max')]
+        vh_x_lon_range = [getattr(vh,'geospatial_lon_min'), 
+                            getattr(vh,'geospatial_lon_max')]
         # dimensions
         vh_y_height    = vh.dimensions['HEIGHT'].size
         vh_x_width     = vh.dimensions['WIDTH'].size
@@ -287,21 +287,21 @@ class UshmDataParser():
             'lat_units':    []
         })
         vh_json['prod'].append({
-            'type':     vh_vci_prod_name,
+            'type':     'VCI', #vh_vci_prod_name, # they decided to change the naming scheme...
             'units':    vh_vci_units,
             'mask':     vh_vci_new.mask.tolist(),
             'fill':     vh_vci_fill,
             'data':     vh_vci_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
         vh_json['prod'].append({
-            'type':     vh_tci_prod_name,
+            'type':     'TCI', #vh_tci_prod_name,
             'units':    vh_tci_units,
             'mask':     vh_tci_new.mask.tolist(),
             'fill':     vh_tci_fill,
             'data':     vh_tci_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
         vh_json['prod'].append({
-            'type':     vh_vhi_prod_name,
+            'type':     'VHI', #vh_vhi_prod_name,
             'units':    vh_vhi_units,
             'mask':     vh_vhi_new.mask.tolist(),
             'fill':     vh_vhi_fill,

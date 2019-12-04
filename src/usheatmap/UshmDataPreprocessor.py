@@ -66,7 +66,7 @@ class UshmDataPreprocessor():
         
     ############
 
-    def run(self,data,fips=[],target=[],plot=False,debug=0):
+    def run(self,data,fips=[],target=[],limit=None,plot=False,debug=0):
         print("[{}] Starting {}...".format(self.utils.timestamp(),__name__))
         shapely.speedups.enable()
         
@@ -129,14 +129,14 @@ class UshmDataPreprocessor():
             # ref: https://cmdlinetips.com/2018/12/how-to-loop-through-pandas-rows-or-how-to-iterate-over-pandas-rows/#:~:targetText=Pandas%20has%20iterrows()%20function,the%20content%20of%20the%20iterator.
             # some data has a 3rd (time) dimension
             
-            first_week = True # if true, only pre-processes first week of data
+            first_week = False#True # if true, only pre-processes first week of data
 
             # https://automating-gis-processes.github.io/2016/Lesson2-geopandas-basics.html
 
             proc_start = datetime.now()
             for week,prod_date in enumerate(date_lst):
                 date_start = datetime.now()
-                print("[{}] Processing data from {}...".format(self.utils.timestamp(),prod_date))
+                print("[{}] Processing {} data from {}...".format(self.utils.timestamp(),prod_type,prod_date))
 
                 # transform data into xarray format
                 try:
@@ -302,9 +302,9 @@ class UshmDataPreprocessor():
                     with open(json_fname, 'w') as outfile:
                         try:
                             json.dump(county_mean[state_fips], outfile)
-                            print("Saved {}-{} JSON \'{}\'".format(state_name,prod_type,json_fname))
+                            print("[{}] Saved {}-{} JSON \'{}\'".format(self.utils.timestamp(),state_name,prod_type,json_fname))
                         except Exception as e:
-                            print("Failed to save \'{}\'. Error: {}".format(json_fname,e))
+                            print("[{}] Failed to save \'{}\'. Error: {}".format(self.utils.timestamp(),json_fname,e))
                     # debug output
                     if(debug > 3):
                         pprint.pprint(county_mean[state_fips])
@@ -325,15 +325,15 @@ class UshmDataPreprocessor():
                             # cax.set_xlim(0.0,100.0)
                             plt_fname = os.path.join( self.project_path,'{}_{}_mean-{}.png'.format(state_name,prod_type,prod_date))
                             plt.savefig(plt_fname,dpi=600)
-                            print("Saved {}-{} figure \'{}\'".format(state_name,prod_type,plt_fname))
+                            print("[{}] Saved {}-{} figure \'{}\'".format(self.utils.timestamp(),state_name,prod_type,plt_fname))
                         except Exception as e:
-                            print("Could not save state plot. Error: {}".format(e))
+                            print("[{}] Could not save state plot. Error: {}".format(self.utils.timestamp(),e))
                         finally:
                             choro = [] # reset choropleth plot data list
                             plt.clf() # clear figure
 
                 date_total = datetime.now()-date_start
-                print("Finished processing data for {} in {:0.3f} minutes!".format(prod_date, date_total.total_seconds()/60))
+                print("[{}] Finished processing {} data for {} in {:0.3f} minutes!".format(self.utils.timestamp(),prod_type,prod_date, date_total.total_seconds()/60))
 
 
                 ###########################################
@@ -351,15 +351,15 @@ class UshmDataPreprocessor():
                                                 'orientation': "horizontal"})
                         plt_fname = os.path.join( self.project_path,'us_{}_mean-{}.png'.format(prod_type,prod_date))
                         plt.savefig(plt_fname,dpi=600)
-                        print("Saved us-{} figure \'{}\'".format(prod_type,plt_fname))
+                        print("[{}] Saved us-{} figure \'{}\'".format(self.utils.timestamp(),prod_type,plt_fname))
                     except Exception as e:
-                        print("Could not save country plot. Error: {}".format(e))
+                        print("[{}] Could not save country plot. Error: {}".format(self.utils.timestamp(),e))
                     finally:
                         choro_state = [] # reset choropleth plot data list
                         plt.clf() # clear figure
                 
                 # uses first_week flag to force only the first week of data being saved
-                if(first_week):
+                if(first_week or (limit and limit <= week+1)):
                     break
                 
             # save all US county information
@@ -367,13 +367,13 @@ class UshmDataPreprocessor():
             with open(json_fname, 'w') as outfile:
                 try:
                     json.dump(county_mean, outfile)
-                    print("Saved all-{} JSON \'{}\'".format(prod_type,json_fname))
+                    print("[{}] Saved all-{} JSON \'{}\'".format(self.utils.timestamp(),prod_type,json_fname))
                 except Exception as e:
-                    print("Failed to save \'{}\'. Error: {}".format(json_fname,e))
+                    print("[{}] Failed to save \'{}\'. Error: {}".format(self.utils.timestamp(),json_fname,e))
             
 
             proc_time = (datetime.now() - proc_start)
-            print("Preprocessing for {} completed in {:0.3f} minutes!".format(prod_type, proc_time.total_seconds()/60))
+            print("[{}] Preprocessing for {} data completed in {:0.3f} minutes!".format(self.utils.timestamp(), prod_type, proc_time.total_seconds()/60))
 
         
 

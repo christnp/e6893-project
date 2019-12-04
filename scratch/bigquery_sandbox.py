@@ -101,7 +101,8 @@ project = "eecs-e6893-edu"
 # bucket = "eecs-e6893-edu"  
 # tmp_dir = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/usheatmap'.format(bucket)
 dataset = 'usheatmap' #the name of output dataset in BigQuery
-table_name = 'initial'
+# table_name = 'initial'
+table_name = 'debug'
 table_id = '{0}.{1}'.format(dataset,table_name)
 
 credentials = service_account.Credentials \
@@ -120,4 +121,4 @@ pandas_gbq.context.project = project
 
 print("Uploading \'df_final\' dataframe to \'{}\' table.".format(table_id))
 print(df_final.head())
-pandas_gbq.to_gbq(df_final, table_id, project_id=project,if_exists='replace')
+# pandas_gbq.to_gbq(df_final, table_id, project_id=project,if_exists='replace')

@@ -19,13 +19,13 @@ from google.oauth2 import service_account
 from datetime import datetime
 
 GET_VH = False      # set TRUE to retrieve raw VH data from FTP server
-PARSE_VH = False     # set TRUE to parse VH data
+PARSE_VH = True     # set TRUE to parse VH data
 SAVE_VH = True     # set TRUE to save parsed output as local JSON file
 # Set PARSE_VH to FALSE and SAVE_VH to TRUE to load already saved JSON file without
 # reparsing/resaving data as JSON
 
 GET_C5 = False      # set TRUE to retrieve raw CMIP-5 data from FTP server
-PARSE_C5 = False    # set TRUE to parse CMIP-5 data
+PARSE_C5 = True    # set TRUE to parse CMIP-5 data
 SAVE_C5 = True     # set TRUE to save parsed output as local JSON file
 # Set PARSE_C5 to FALSE and SAVE_C5 to TRUE to load already saved JSON file without
 # reparsing/resaving data as JSON
@@ -83,7 +83,7 @@ if PARSE_VH:
         date_start = datetime.strptime(vh_dates[0], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
         date_end = datetime.strptime(vh_dates[-1], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
         if SAVE_VH:
-            vh_json_file = "vh_{}_json_{}-{}.json".format(product,date_start,date_end)
+            vh_json_file = "vh_{}_json_{}_{}.json".format(product,date_start,date_end)
             vh_json_path = os.path.join(temp_dir,vh_json_file)
             print("Saving VH JSON file \'{}\'".format(vh_json_path))
             with open(vh_json_path, 'w') as outfile:
@@ -113,7 +113,7 @@ if PARSE_C5:
         date_start = datetime.strptime(c5_dates[0], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
         date_end = datetime.strptime(c5_dates[-1], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
         if SAVE_C5:
-            c5_json_file = "c5_{}_json_{}-{}.json".format(product,date_start,date_end)
+            c5_json_file = "c5_{}_json_{}_{}.json".format(product,date_start,date_end)
             c5_json_path = os.path.join(temp_dir,c5_json_file)
             print("Saving C5 JSON file \'{}\'".format(c5_json_path))
             with open(c5_json_path, 'w') as outfile:
@@ -143,7 +143,7 @@ if SAVE_VH:
             print("Failed to open \'{}\'. Error: {}".format(vh_json_path,e))
 
         # preprocessor
-        preproc.run(vh_json,fips=state_fips,target=['TCI'],plot=True,debug=3) # plot =>savefig, target=['TCI','VHI'],
+        preproc.run(vh_json,fips=state_fips,plot=True,debug=3) # plot =>savefig, target=['TCI','VHI'],
 
 if SAVE_C5:
     c5_json_files = [f for f in json_files if "c5" in f]
@@ -156,7 +156,7 @@ if SAVE_C5:
             print("Failed to open \'{}\'. Error: {}".format(c5_json_path,e))
 
         # preprocessor
-        preproc.run(c5_json,fips=state_fips,target=['tasmax'],plot=True,debug=3) # plot =>savefig, target=['tasmax']
+        preproc.run(c5_json,fips=state_fips,plot=True,debug=3) # plot =>savefig, target=['tasmax'], limit=3,
 
 ################################################################################
 
@@ -173,7 +173,6 @@ if SAVE_BQ:
 
     files = [f for f in os.listdir(preproc_base) if os.path.isfile(os.path.join(preproc_base, f)) and f.endswith(".json")]
     files.sort()
-
     temp = {}
     for f in files:
         json_file = os.path.join(preproc_base,f)
@@ -210,7 +209,6 @@ if SAVE_BQ:
     vci_data = []
     tci_data = []
     vhi_data = []
-
     print("Building dataframe...")
     for state in temp:
         # print(temp[state])
@@ -224,10 +222,11 @@ if SAVE_BQ:
         tci_data = [json.load(open(x)) for x in temp[state]['tci']]
         vhi_data = [json.load(open(x)) for x in temp[state]['vhi']]
 
-        common = ['date','centroid_lon','centroid_lat','county','state']
-        dfs = []
+        common = ['date','centroid_lon','centroid_lat','state','county']
+        dfs_final = []
         for dict in [tasmin_data,tasmax_data,pr_data,vci_data,tci_data,vhi_data]: #[pr_data,vci_data]:
         # for dict in [vhi_data]: #[pr_data,vci_data]:
+            dfs_prod = []
             for tmp in dict:
                 df = pd.DataFrame(tmp)  
                 # Need to clean-up some of the data; rename mean column as type and remove type column
@@ -236,23 +235,29 @@ if SAVE_BQ:
                 try:
                     # convert date string to datetime
                     df['date']= pd.to_datetime(df['date']) 
+                    if(tmp[0]['type'] in ['VCI','TCI','VHI']):
+                        df['date'] = df["date"] +  pd.Timedelta(days=1)
                     # rename mean column to the product type
                     df.rename(columns={'mean':tmp[0]['type'].lower()}, inplace=True)
                     # remove the 'type' column (not needed)
                     df.drop(columns=['type'],inplace=True) 
-                    dfs.append(df)
+                    dfs_prod.append(df)
                 except Exception as e:
                     print("Error: {} \ndata: {}".format(e,tmp))
+            # need to combine like products with different dates
+            df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_prod)
+            dfs_final.append(df_prod)
 
         # ref: https://stackoverflow.com/questions/23668427/pandas-three-way-joining-multiple-dataframes-on-columns
-        df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs)
+        df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
 
     # start BQ
     project = "eecs-e6893-edu"
     # bucket = "eecs-e6893-edu"  
     # tmp_dir = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/usheatmap'.format(bucket)
     dataset = 'usheatmap' #the name of output dataset in BigQuery
-    table_name = 'initial'
+    # table_name = 'initial'
+    table_name = 'final'
     table_id = '{0}.{1}'.format(dataset,table_name)
 
     credentials = service_account.Credentials \
