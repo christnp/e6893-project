@@ -1,0 +1,30 @@
+config stored in ~/.config/gcloud/configurations/config_default
+// DEPRECATED -- BUCKET_NAME='eecs-e6893-default' -> $BUCKET_NAME
+// CLUSTER='hw0-cluster' -> ${CLUSTER}
+
+// Project
+gcloud beta dataproc clusters create ushm-cluster    --optional-components=ANACONDA,JUPYTER --image-version=preview    --enable-component-gateway --bucket eecs-e6893-edu    --project eecs-e6893-edu --num-workers 3 --metadata 'PIP_PACKAGES=graphframes numpy matplotlib pandas_gbq requests_oauthlib google-cloud-storage google-cloud-bigquery xarray  pprint salem descartes scipy pyproj joblib scikit-image pillow geopandas pandas shapely netCDF4'     --metadata gcs-connector-version=1.9.16 --metadata bigquery-connector-version=0.13.16 --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh,gs://dataproc-initialization-actions/connectors/connectors.sh --properties spark:spark.jars.packages=graphframes:graphframes:0.6.0-spark2.3-s_2.11
+
+// HW4
+gcloud beta dataproc clusters create hw4-cluster    --optional-components=ANACONDA,JUPYTER --image-version=preview    --enable-component-gateway --bucket eecs-e6893-edu    --project eecs-e6893-edu --num-workers 3 --metadata 'PIP_PACKAGES=graphframes numpy matplotlib pandas_gbq requests_oauthlib google-cloud-storage google-cloud-bigquery'     --metadata gcs-connector-version=1.9.16 --metadata bigquery-connector-version=0.13.16 --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh,gs://dataproc-initialization-actions/connectors/connectors.sh --properties spark:spark.jars.packages=graphframes:graphframes:0.6.0-spark2.3-s_2.11
+
+// HW3
+gcloud beta dataproc clusters create hw3-cluster --optional-components=ANACONDA,JUPYTER --image-version=preview --enable-component-gateway --metadata 'PIP_PACKAGES=requests_oauthlib google-cloud-bigquery
+ tweepy' --metadata gcs-connector-version=1.9.16 --metadata bigquery-connector-version=0.13.16 --project eecs-e6893-edu --bucket eecs-e6893-edu --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh,gs://dataproc-initialization-actions/connectors/connectors.sh  --single-node
+
+// HW2
+gcloud beta dataproc clusters create hw2-cluster    --optional-components=ANACONDA,JUPYTER --image-version=1.4-ubuntu18    --enable-component-gateway --bucket eecs-e6893-edu    --project eecs-e6893-edu --num-workers 3 --metadata 'PIP_PACKAGES=graphframes numpy matplotlib'    --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh --properties spark:spark.jars.packages=graphframes:graphframes:0.6.0-spark2.3-s_2.11
+
+// HW1
+gcloud beta dataproc clusters create hw1-cluster    --optional-components=ANACONDA,JUPYTER --image-version=1.4-ubuntu18    --enable-component-gateway --bucket eecs-e6893-edu    --project eecs-e6893-edu --single-node --metadata 'PIP_PACKAGES=graphframes==0.6 numpy==1.17.2 sklearn==0.0 scipy==1.3.1 scikit-learn==0.21.3 matplotlib==3.1.1  mLib==1.2.4'    --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh
+
+// HW0
+gcloud beta dataproc clusters create hw0-cluster \
+   --optional-components=ANACONDA,JUPYTER --image-version=1.4-ubuntu18 \
+   --enable-component-gateway --bucket eecs-e6893-default \
+   --project eecs-e6893 --single-node --metadata 'PIP_PACKAGES=graphframes==0.6 numpy==1.17.2 nltk==3.4.5' \
+   --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh   
+
+
+
+
