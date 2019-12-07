@@ -114,18 +114,24 @@ class UshmDataPreprocessor():
         # 'fill':     int,
         # 'data':     list of float -> to get np.ndarray do np.array(prod['data'])
         for product in data['prod']:
-            
-            # reconstruct masked data
-            prod_mask = np.array(product['mask'])
-            prod_fill = product['fill']
-            prod_data = np.ma.array(product['data'],mask=prod_mask,fill_value=prod_fill)
-            prod_type = product['type']
-
+            # collect the product type and check if we are skipping it
             # allows for preprocessing of certain products only
+            prod_type = product['type']
             if target and prod_type not in target:
                 print("Skipping {}...".format(prod_type))
                 continue
-           
+
+            # reconstruct masked data
+            prod_data = np.array(product['data'])
+            prod_mask = np.array(product['mask'])
+            prod_fill = product['fill']
+            # TODO: flip data if it is VH data?
+            # if prod_type in["VCI","TCI","VHI"]:
+            #     prod_mask = np.flip(prod_mask,1)
+            #     prod_data = np.flip(prod_data,1)
+            # apply mask
+            prod_data = np.ma.array(prod_data,mask=prod_mask,fill_value=prod_fill)
+            
             # ref: https://cmdlinetips.com/2018/12/how-to-loop-through-pandas-rows-or-how-to-iterate-over-pandas-rows/#:~:targetText=Pandas%20has%20iterrows()%20function,the%20content%20of%20the%20iterator.
             # some data has a 3rd (time) dimension
             
@@ -222,23 +228,23 @@ class UshmDataPreprocessor():
                             das = da.salem.subset(shape=county, margin=10) #gives bounding box
                         except Exception as e:
                             choro.append(0.0)
-                            print("\n[{}] Failed to select SUBSET on xarray.DataArray(). Error: {}".format(self.utils.timestamp(),e))
+                            print("[{}] Failed to select SUBSET on xarray.DataArray() for {}. Error: {}".format(self.utils.timestamp(),counties['NAME'],e))
                             # Failed to select ROI on xarray.DataArray(). Error: zero-size array to reduction operation minimum which has no identity
                             # e.g., Montour County Pennsylvania
                             # Failed to select ROI on xarray.DataArray(). Error: index 1 is out of bounds for axis 0 with size 0
                             # e.g., Washington County Oregon missing lon, Willacy County Texas missing lat
-                            print("\n county: \n{}".format(county))
-                            print("\n xarray da: \n{}".format(da))
+                            # print("\n county: \n{}".format(county))
+                            # print("\n xarray da: \n{}".format(da))
                             continue
 
                         try:
                             dsr = das.salem.roi(shape=county) # da.salem.subset(shape=county, margin=10) # gives bounding box
                         except Exception as e:
                             choro.append(0.0)
-                            print("[{}] Failed to select ROI on xarray.DataArray(). Error: {}".format(self.utils.timestamp(),e))
-                            print("\n county: \n{}".format(county))
-                            print("\n xarray da: \n{}".format(da))
-                            print("\n subset da: \n{}".format(das))
+                            print("[{}] Failed to select ROI on xarray.DataArray() for {}. Error: {}".format(self.utils.timestamp(),counties['NAME'],e))
+                            # print("\n county: \n{}".format(county))
+                            # print("\n xarray da: \n{}".format(da))
+                            # print("\n subset da: \n{}".format(das))
                             continue
 
                         
@@ -298,7 +304,9 @@ class UshmDataPreprocessor():
                             print(">>> {}_{}:  {}".format(counties['COUNTYFP'],counties['NAME'], mean))
                 
                     # save JSON file to temp location
-                    json_fname = os.path.join( self.project_path,'{}_{}_mean-{}.json'.format(state_name,prod_type,prod_date))
+                    file_date = datetime.strptime(prod_date, "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
+                    file_name = "{}_{}_json_{}".format(state_name,prod_type,file_date)
+                    json_fname = os.path.join(self.project_path,file_name+'.json')
                     with open(json_fname, 'w') as outfile:
                         try:
                             json.dump(county_mean[state_fips], outfile)
@@ -323,7 +331,7 @@ class UshmDataPreprocessor():
                             # cax = f.get_axes()[1]
                             # # cax.set_ylabel('test')
                             # cax.set_xlim(0.0,100.0)
-                            plt_fname = os.path.join( self.project_path,'{}_{}_mean-{}.png'.format(state_name,prod_type,prod_date))
+                            plt_fname = os.path.join( self.project_path,file_name+'.png')
                             plt.savefig(plt_fname,dpi=600)
                             print("[{}] Saved {}-{} figure \'{}\'".format(self.utils.timestamp(),state_name,prod_type,plt_fname))
                         except Exception as e:
@@ -339,6 +347,7 @@ class UshmDataPreprocessor():
                 ###########################################
                 # TO PLOT CHOROPLETH CHART
                 ###########################################
+               
                 if plot:
                     try:
                         # ref: http://geopandas.org/mapping.html
@@ -349,7 +358,9 @@ class UshmDataPreprocessor():
                         us_contiguous.plot(ax=ax,column='mean', legend=True,
                                     legend_kwds={'label': "Mean",
                                                 'orientation': "horizontal"})
-                        plt_fname = os.path.join( self.project_path,'us_{}_mean-{}.png'.format(prod_type,prod_date))
+                        file_date = datetime.strptime(prod_date, "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
+                        file_name = "all{}_json_{}".format(prod_type,file_date)
+                        plt_fname = os.path.join( self.project_path,file_name+'.png'.format(prod_type,prod_date))
                         plt.savefig(plt_fname,dpi=600)
                         print("[{}] Saved us-{} figure \'{}\'".format(self.utils.timestamp(),prod_type,plt_fname))
                     except Exception as e:
@@ -359,11 +370,13 @@ class UshmDataPreprocessor():
                         plt.clf() # clear figure
                 
                 # uses first_week flag to force only the first week of data being saved
-                if(first_week or (limit and limit <= week+1)):
-                    break
+                # if(first_week or (limit and limit <= week+1)):
+                #     break
                 
             # save all US county information
-            json_fname = os.path.join( self.project_path,'all_{}_mean-{}.json'.format(prod_type,prod_date))
+            file_date = datetime.strptime(prod_date, "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
+            file_name = "all_{}_json_{}".format(prod_type,file_date)
+            json_fname = os.path.join( self.project_path,file_name+'.json')
             with open(json_fname, 'w') as outfile:
                 try:
                     json.dump(county_mean, outfile)
@@ -375,148 +388,5 @@ class UshmDataPreprocessor():
             proc_time = (datetime.now() - proc_start)
             print("[{}] Preprocessing for {} data completed in {:0.3f} minutes!".format(self.utils.timestamp(), prod_type, proc_time.total_seconds()/60))
 
-        
-
-        
-            
-
-################# ATTEMPT USING GeoSeries/GeoDataFrame #########################
-                # import itertools
-                # out = []
-                # lat_ind = 0
-                # x_dim = len(x)
-                # y_dim = len(y)
-                # lon_x = 0
-                # lat_y = 0
-                # for lat_ind,(lon,lat) in enumerate(itertools.product(x,y)):
-                #     # lat_y = lat_ind*x_dim+lon_ind
-                #     # print("{},{}".format(lon_x,lat_y))
-                #     d = data['prod'][0]['data'][0][lat_y][lon_x] #
-                #     lat_y += 1
-                #     out.append((d,(lon,lat)))
-                #     if not lat_y % y_dim and lat_y != 0:
-                #         lon_x += 1
-                #         lat_y = 0
-                #     if lat_y == y_dim-1:# and lon_x == 1:
-                #         break
-
-                # # print(out)
-                # print(type(out))
-                # print(len(out))
-                # print(data['prod'][0]['type'])
-                # # sys.exit()
-                # # x = range(lon_start,lon_end,lon_step)
-                # # y = range(lat_start,lat_end,lat_step)
-                # # print(x)
-                # # print(y)
-                # # data | lon | lat | geometry
-                # from shapely.geometry import Point
-                # # geom = map(lambda x : Point([x]), out)
-                # tmp = {}
-                # tmp['data'] = []
-                # tmp['lat'] = []
-                # tmp['lon'] = []
-                # geom = []
-                # for d,g in out:
-                #     geom.append(Point(g))
-                #     tmp['data'].append(d)
-                #     tmp['lon'].append(g[0])
-                #     tmp['lat'].append(g[1])
-
-                # # geom = [Point(x) for x in out]
-                # s = gpd.GeoDataFrame(tmp, geometry=geom) #geom is a Series
-                # # s.crs = {‘init’ :’epsg:4326'}
-                # # s = gpd.GeoSeries(map(Point, out))#zip(x, y)))
-
-                # # IDX: [1528, 3140] #lon
-                # # IDX: [707, 1390]  #lat
-                # print(s.head(100))
-                # print(len(s.index))
-                # #TODO: loop through all products
-                # # for prod in data['prod']:
-                # #     data = np.array(prod['data'])
-                # #     pprint.pprint(prod['type'])
-                # #     pprint.pprint(type(data))
-
-                # sys.exit()
-################################################################################
-# other methods:
-# ref: https://stackoverflow.com/questions/37563526/area-intersection-in-python
-# ref: https://medium.com/@bobhaffner/spatial-joins-in-geopandas-c5e916a763f3
-        
-
-
-        # oregon = us_states.loc[us_states['NAME']=='Oregon'] # replaced .ix with .loc per warning
-        # oregon.reset_index(drop=True, inplace=True) # what does this do?
-
-        # print(us_county.columns)
-        # Example for getting specific state data 
-        # state = us_county.loc[us_county['STATEFP']!='02']
-        # state = state.loc[state['STATEFP']!='15']
-        # # county = state.loc[state['NAME']=='Morrow'] # for Oregon
-        # county = state.loc[state['COUNTYFP']=='049']
-
-        # ###########################################
-        # # TO PLOT CHOROPLETH CHART
-        # ###########################################
-        # if plot:
-        #     # ref: http://geopandas.org/mapping.html
-        #     state['test'] = state.AWATER + state.ALAND # example of adding column for plot (see below)
-        #     fig = plt.figure(1, figsize=(5,5), dpi=90)
-        #     ax = fig.add_subplot(111)
-        #     state.plot(ax=ax,column='test', legend=True,
-        #                 legend_kwds={'label': "Total Area",
-        #                             'orientation': "horizontal"})
-        #     plt.show()
-        ###########################################
-
-
-        # https://stackoverflow.com/questions/44399749/get-all-lattice-points-lying-inside-a-shapely-polygon
-        # points = MultiPoint(VH_data_coords) #np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
-        # bounded_ind = points.intersection(state.loc[0,'geometry'])
-        # print(bounded_ind)
-        # data_for_analysis = VH_data[bounded_ind]
-        # pip_data = oregon.loc[pip_mask]
-
-        # plotting 
-        # ref: http://geopandas.org/mapping.html
-
-
-
-        #######################################################################
-        # Use Masked arrays an np.ndarray.nanmean for generating mean of county?
-        # 1. https://docs.scipy.org/doc/numpy/reference/maskedarray.generic.html
-        # 2. https://docs.scipy.org/doc/numpy/reference/generated/numpy.nanmean.html
-
-        #numpy.putmask(a, mask, values)¶
-
-        # tmp = np.empty((c5_y_height,c5_x_width))
-        # tmp.fill(1.0e30)
-        # print(tmp.shape)
-        # print(tmp)
-        # print(c5_pr[:].filled())
-
-        # print("c5_y_lat_idx = {}".format(c5_y_lat_idx))
-        # print("c5_x_lon_idx = {}".format(c5_x_lon_idx))
-        # print(c5_y_lat_idx[0])
-        # print(c5_y_lat_idx[1])
-        # for y in range(c5_y_lat_idx[0],c5_y_lat_idx[1]):
-        #     for x in range(c5_x_lon_idx[0],c5_x_lon_idx[1]):
-        #         tmp[y][x] = 1
-
-        # # tmp[c5_y_lat_idx[0]:c5_y_lat_idx[1]][c5_x_lon_idx[0]:c5_x_lon_idx[1]] = 1
-
-        # print(tmp.shape)
-        # print(tmp[0][c5_y_lat_idx[0]][:])
-        # sys.exit()
-        # for i in tmp:
-        #     for x,j in enumerate(i):
-        #         if x in range(c5_y_lat_idx[0],c5_y_lat_idx[1]):
-        #             print(x)
-        #             print(j[:])
-        #             if j[0] != 0:
-        #                 break
 if __name__ == "__main__":
-    prep = UshmDataPreprocessor()
-    prep.run()#(plot=True)
     pass

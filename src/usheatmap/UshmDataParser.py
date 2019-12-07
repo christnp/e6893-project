@@ -81,6 +81,8 @@ class UshmDataParser():
         for i,tslice in enumerate(c5_date):
             day += 1
             if i%7 == 0 and i !=0: 
+                # uncomment to use YYYY-week#
+                # c5_date[i] = datetime.strptime(c5_date[i], "%Y-%m-d").date().strftime('%Y-%W')
                 pass
             else:
                 # mark non-week dates for removal
@@ -179,10 +181,19 @@ class UshmDataParser():
         vh_product     = getattr(vh,'PRODUCT_NAME')
         vh_year        = getattr(vh,'YEAR')
         vh_week        = getattr(vh,'PERIOD_OF_YEAR')
-        vh_y_lat_range = [getattr(vh,'geospatial_lat_min'), 
-                            getattr(vh,'geospatial_lat_max')]
-        vh_x_lon_range = [getattr(vh,'geospatial_lon_min'), 
-                            getattr(vh,'geospatial_lon_max')]
+        try:
+            vh_y_lat_range = [getattr(vh,'geospatial_lat_min'), 
+                                getattr(vh,'geospatial_lat_max')]
+            vh_x_lon_range = [getattr(vh,'geospatial_lon_min'), 
+                                getattr(vh,'geospatial_lon_max')]
+        except Exception as e:
+            print("\nLat/Lon attributes have changed. Error: {}\n".format(e))
+            print(">>> Attempting the old format now...\n")
+            vh_y_lat_range = [getattr(vh,'START_LATITUDE_RANGE'), 
+                                getattr(vh,'END_LATITUDE_RANGE')]
+            vh_x_lon_range = [getattr(vh,'START_LONGITUDE_RANGE'), 
+                                getattr(vh,'END_LONGITUDE_RANGE')]
+            print(">>> success!")
         # dimensions
         vh_y_height    = vh.dimensions['HEIGHT'].size
         vh_x_width     = vh.dimensions['WIDTH'].size
@@ -204,11 +215,12 @@ class UshmDataParser():
         vh_tci_fill = np.float(vh_tci_attr._FillValue)    # int16 not JSON serializable
         vh_vhi_fill = np.float(vh_vhi_attr._FillValue)    # int16 not JSON serializable
 
-        vh_x_lon_step = (vh_x_lon_range[1]-vh_x_lon_range[0])/vh_x_width
-        vh_y_lat_step = (vh_y_lat_range[1]-vh_y_lat_range[0])/vh_y_height
+        # vh_x_lon_step = (vh_x_lon_range[1]-vh_x_lon_range[0])/vh_x_width
+        vh_x_lon_step = (abs(vh_x_lon_range[1])+abs(vh_x_lon_range[0]))/vh_x_width
+        # vh_y_lat_step = (vh_y_lat_range[1]-vh_y_lat_range[0])/vh_y_height
+        vh_y_lat_step = (abs(vh_y_lat_range[1])+abs(vh_y_lat_range[0]))/vh_y_height
 
-        console = "[{}] Parsing \'{}\' data...\n".format(self.utils.timestamp(),vh_product)     # Console output string
-
+        console = "[{}] Parsing \'{}\' data...".format(self.utils.timestamp(),vh_product)     # Console output string
         if debug > 1:
             # VH
             console += "\nVH Data Specs \n"
@@ -233,7 +245,11 @@ class UshmDataParser():
         vh_date = []
         # res = datetime.strptime("2018 W30 w1", "%Y %W w%w")
         d = "{}-{}-0".format(vh_year,vh_week) # set for YYYY-MM-Sunday
-        vh_date.append(datetime.strptime(d, "%Y-%W-%w").date().strftime('%Y-%m-%d %H:%M:%S'))#.strftime('%Y-%m-%d'))
+        vh_date.append(datetime.strptime(d, "%Y-%W-%w").date().strftime('%Y-%m-%d %H:%M:%S'))
+
+        # uncomment to use YYYY-week#
+        # d = "{}-{}".format(vh_year,vh_week) # set for YYYY-MM-Sunday
+        # vh_date.append(d)
 
         ######################### TODO: MAKE THIS A GLOBAL #####################
         # tmp_boxes = json.load(open('../../scratch/country_boxes.json'))
@@ -244,10 +260,24 @@ class UshmDataParser():
         ############################################################################
         
         # new longitude and width indices
+         # Longitude = (-180.0 + (i+0.5)* dLon) (i: counts from 0 to 9999) 
+        # i = (lon + 180.0)/dLon - 0.5 
+        # vh_x_lon_idx = [int((lon_bounds[0] + 180.0)/vh_x_lon_step - 0.5),
+        #                 int((lon_bounds[1] + 180.0)/vh_x_lon_step - 0.5)]
+        # vh_x_lon_range = lon_bounds
+        # vh_x_lon = np.arange(lon_bounds[0],lon_bounds[1]-vh_x_lon_step,vh_x_lon_step).tolist()
+
         vh_x_lon_idx, vh_x_lon_range,vh_x_lon = self.boundCoords(vh_x_lon_range,vh_x_lon_step,lon_bounds)
         vh_x_width = abs(vh_x_lon_idx[1] - vh_x_lon_idx[0])
 
         # new latitude and height indices
+        # Latitude = (75.024 - (j+0.5) *dLat) (j: counts from 0 to 3615)
+        # j = (75.024-lat)/dLat - 0.5
+        # vh_y_lat_idx = [int((75.024-lat_bounds[1] )/vh_y_lat_step - 0.5),
+        #                 int((75.024-lat_bounds[0])/vh_y_lat_step - 0.5)]
+        # vh_y_lat_range = lat_bounds
+        # vh_y_lat = np.arange(lat_bounds[0],lat_bounds[1],vh_y_lat_step).tolist()   
+
         vh_y_lat_idx, vh_y_lat_range,vh_y_lat = self.boundCoords(vh_y_lat_range,vh_y_lat_step,lat_bounds)
         vh_y_height = abs(vh_y_lat_idx[1] - vh_y_lat_idx[0])
         
@@ -307,25 +337,6 @@ class UshmDataParser():
             'fill':     vh_vhi_fill,
             'data':     vh_vhi_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
-        
-        # vh_json['vci'].append({
-        #     'type':     vh_vci_prod_name,
-        #     'units':    vh_vci_units,
-        #     'fill':     vh_vci_fill,
-        #     'data':     vh_vci_new.tolist() # to get np.ndarray do np.array(json['data'])
-        # })
-        # vh_json['tci'].append({
-        #     'type':     vh_tci_prod_name,
-        #     'units':    vh_tci_units,
-        #     'fill':     vh_tci_fill,
-        #     'data':     vh_tci_new.tolist() # to get np.ndarray do np.array(json['data'])
-        # })
-        # vh_json['vhi'].append({
-        #     'type':     vh_vhi_prod_name,
-        #     'units':    vh_vhi_units,
-        #     'fill':     vh_vhi_fill,
-        #     'data':     vh_vhi_new.tolist() # to get np.ndarray do np.array(json['data'])
-        # })
 
         if debug > 1:
             pprint.pprint(vh_json)
@@ -366,7 +377,7 @@ class UshmDataParser():
         c5_prod         = c5[product]
         c5_prod_units   = c5[product].units
         c5_prod_fill    = np.float(c5[product]._FillValue)
-        # c5_prod_name    = c5[product].long_name
+        # c5_prod_name    = c5[product].long_name   #NOTE: removed because it is inconsistent
         c5_prod_name    = product
         
         ######################## convert the data ##############################
@@ -393,7 +404,7 @@ class UshmDataParser():
             delta = timedelta(c5_time[i])     # Create a time delta object from the number of days
             c5_date.append((start + delta).strftime('%Y-%m-%d %H:%M:%S'))#.strftime('%Y-%m-%d'))      # Add the specified number of days to 1990
 
-        console = "[{}] Parsing CMIP-5 {} \'{}\' data...\n".format(self.utils.timestamp(),c5_model_id,c5_prod_name)     # Console output string
+        console = "[{}] Parsing CMIP-5 {} \'{}\' data...".format(self.utils.timestamp(),c5_model_id,c5_prod_name)     # Console output string
         if debug > 1:
             # CMIP5-LOCA
             console += "\nCMIP5-LOCA Specs \n"
@@ -425,24 +436,12 @@ class UshmDataParser():
         c5_y_lat_idx, c5_y_lat_range,c5_y_lat = self.boundCoords(c5_y_lat_range,c5_y_lat_step,lat_bounds)
         c5_y_height = abs(c5_y_lat_idx[1] - c5_y_lat_idx[0])
 
-        # print(c5_x_lon_idx)
-        # print([c5_x_lon[0],c5_x_lon[-1]])
-        # print(c5_x_width)
-        # print(c5_y_lat_idx)
-        # print([c5_y_lat[0],c5_y_lat[-1]])
-        # print(c5_y_height)
         ############## apply bounds and convert C5 to weekly data ##############
         c5_prod_new = np.empty((c5_y_height,c5_x_width,52))
-        # print(c5_prod_new.shape)
         # use helper function to get CMIP date and bounded data
         c5_date = self.getDateCmip(c5_date,debug=debug)
         c5_prod_new = self.getBoundedCmip(c5_prod,c5_y_height,c5_x_width,
                                             lat=c5_y_lat_idx,lon=c5_x_lon_idx,debug=debug)
-
-        # c5_tasmin_new = self.getBoundedCmip(c5_tasmin,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
-        # c5_tasmax_new = self.getBoundedCmip(c5_tasmax,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
-        # c5_dtr_new = self.getBoundedCmip(c5_dtr,c5_y_height,c5_x_width,lat=c5_y_lat_idx,lon=c5_x_lon_idx)
-        # print(c5_prod_new.shape)
 
         # getting memory error when allocating numpy arrays:
         # https://stackoverflow.com/questions/57507832/unable-to-allocate-array-with-shape-and-data-type
@@ -452,9 +451,6 @@ class UshmDataParser():
         c5_json['type']     = c5_model_id # TODO: make this cmip-5 + model
         c5_json['attr']     = []    # global attributes
         c5_json['prod']       = []    # pr specific
-        # c5_json['tasmin']   = []    # tasmin specific
-        # c5_json['tasmax']   = []    # tasmax specific
-        # c5_json['dtr']      = []    # dtr specific
 
         c5_json['attr'].append({
             # 'year':         c5_date[0].year,
@@ -481,18 +477,6 @@ class UshmDataParser():
             'mask':     c5_prod_new.mask.tolist(),
             'data':     c5_prod_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
-        # c5_json['tasmin'].append({
-        #     'units':    [],
-        #     'data':     []
-        # })
-        # c5_json['tasmax'].append({
-        #     'units':    [],
-        #     'data':     []
-        # })
-        # c5_json['dtr'].append({
-        #     'units':    [],
-        #     'data':     []
-        # })
 
         # precipitation, kg m-2 s-1 (converted to mm/day in 'Subset Request' interface)
         # minimum surface air temperature, °K (converted to °C in 'Subset Request' interface)
@@ -504,46 +488,6 @@ class UshmDataParser():
         return c5_json
 
 if __name__ == "__main__":
-    from os import listdir
-    from os.path import isfile, join
-
-    PARSE_C5 = False
-    PARSE_VH = False
-
-    print("Running {} locally".format(__file__))
-    # create parser object
-    ushm = UshmDataParser()
-
-    project_base = "/home/christnp/Development/e6893/homework/e6893-project/"
-    
-    if PARSE_C5:
-        c5_dir = 'scratch/temp/gdo-dcp.ucllnl.org/'
-        c5_path = os.path.join(project_base,c5_dir)
-
-        files = [f for f in listdir(c5_path) if isfile(join(c5_path, f))]
-        for f in files:
-            print(f)
-            product = f.split("_")[0]
-            print(product)
-
-            c5_path = os.path.join(project_base,c5_dir,f)
-            test_c5 = ushm.parseCmip(c5_path,product=product)
-            pprint.pprint(test_c5)
-
-    if PARSE_VH:
-        # ftp_loc = 'ftp://ftp.star.nesdis.noaa.gov/pub/corp/scsb/wguo/data/Blended_VH_4km/VH/VHP.G04.C07.NN.P2006001.VH.nc'
-        vh_dir = 'scratch/temp/ftp.star.nesdis.noaa.gov-static/'
-        # vh_file = 'VHP.G04.C07.NN.P2006001.VH.nc'
-        vh_path = os.path.join(project_base,vh_dir)
-        files = [f for f in listdir(vh_path) if isfile(join(vh_path, f))]
-        for f in files:
-            print(f)
-            product = f.split(".")[-2]
-            print(product)
-
-            vh_path = os.path.join(project_base,vh_dir,f)
-            test_vh = ushm.parseVH(vh_path)#,product=product)
-            pprint.pprint(test_vh)
-
+ 
     pass
     

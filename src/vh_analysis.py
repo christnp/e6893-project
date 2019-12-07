@@ -25,9 +25,11 @@ if SALEM:
 from usheatmap.UshmDataParser import UshmDataParser
 from usheatmap.UshmDataPreprocessor import UshmDataPreprocessor
 
-f = "/home/christnp/Development/e6893/homework/e6893-project/src/.tmp/temp_ftp.star.nesdis.noaa.gov/VHP.G04.C07.npp.P2018001.VH.nc"
-prod_path = os.path.join(vh_dir,f)    
-product = f.split(".")[-2]
+prod_path = "/home/christnp/Development/e6893/homework/e6893-project/src/.tmp/temp_ftp.star.nesdis.noaa.gov/VHP.G04.C07.npp.P2018001.VH.nc"
+
+parser = UshmDataParser()
+preproc = UshmDataPreprocessor()
+product = prod_path.split(".")[-2]
 vh_json = parser.parseVH(prod_path)#,product=product)
 # saveUshmData(temp_dir,vh_json,product)
 pprint.pprint(vh_json['attr'])

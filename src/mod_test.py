@@ -18,19 +18,55 @@ from functools import reduce
 from google.oauth2 import service_account
 from datetime import datetime
 
+VERBOSITY = 3    # sets debug level: 0=not verbose, 4=max verbosity
+QUICK = False     # set TRUE to process only the first week (c5)
+
 GET_VH = False      # set TRUE to retrieve raw VH data from FTP server
-PARSE_VH = True     # set TRUE to parse VH data
-SAVE_VH = True     # set TRUE to save parsed output as local JSON file
+PARSE_VH = False     # set TRUE to parse VH data
+SAVE_VH = False     # set TRUE to save parsed output as local JSON file
 # Set PARSE_VH to FALSE and SAVE_VH to TRUE to load already saved JSON file without
 # reparsing/resaving data as JSON
 
 GET_C5 = False      # set TRUE to retrieve raw CMIP-5 data from FTP server
-PARSE_C5 = True    # set TRUE to parse CMIP-5 data
+PARSE_C5 = False    # set TRUE to parse CMIP-5 data
 SAVE_C5 = True     # set TRUE to save parsed output as local JSON file
 # Set PARSE_C5 to FALSE and SAVE_C5 to TRUE to load already saved JSON file without
 # reparsing/resaving data as JSON
 
 SAVE_BQ = True
+
+
+def saveUshmData(path,data,product,dateform='%Y-%m-%d'):
+    """
+    Saves JSON data in standard output file format.
+    """
+    dates = data['attr'][0]['date']
+    date_start = datetime.strptime(dates[0], "%Y-%m-%d %H:%M:%S").date().strftime(dateform)
+    date_end = datetime.strptime(dates[-1], "%Y-%m-%d %H:%M:%S").date().strftime(dateform)
+    json_file = "{}_json_{}_{}.json".format(product.lower(),date_start,date_end)
+    json_path = os.path.join(path,json_file)
+    print("[{}] Saving {} JSON file as \'{}\'".format(__file__,product,json_path))
+    with open(json_path, 'w') as outfile:
+        try:
+            json.dump(data, outfile)
+        except Exception as e:
+            print("[{}] Failed to save \'{}\'. Error: {}".format(__file__,json_path,e))
+    
+def loadUshmData(path,prod):
+    """
+    JSON data generator. Yields JSON data from JSON files in path if they
+    are of type 'prod'
+    """
+    json_files = [f for f in os.listdir(temp_dir) if os.path.isfile(os.path.join(temp_dir, f)) and prod in f]
+    for json_file in json_files:
+        json_path = os.path.join(path,json_file)
+        try:
+            print("[{}] Loading {} JSON file \'{}\'".format(__file__,prod,json_path))
+            yield json.load(open(json_path))
+        except Exception as e:
+            print("[{}] Failed to open \'{}\'. Error: {}".format(__file__,json_path,e))
+            yield None
+
 
 ################## TEST DIRECTORIES; USER DEPENDENT ############################
 project_base = "/home/christnp/Development/e6893/homework/e6893-project/"
@@ -62,101 +98,69 @@ c5_dir = os.path.join(temp_dir,'temp_'+c5_src.netloc)
 
 if GET_VH:
     # scrape
-    # vh_src = urlparse(vh_src_url)
-    # vh_storage = "temp/temp_{}".format(vh_src.netloc)
-    # years = [str(x) for x in list(range(2006,2020))]
     years = [str(x) for x in list(range(2018,2020))]
     for year in years:
         scraper.getVegHealthData(vh_src.geturl(),vh_dir,date=year)
-if PARSE_VH:
-    # parse
-    vh_path = vh_dir #os.path.join(project_base,vh_dir)
-    files = [f for f in os.listdir(vh_path) if os.path.isfile(os.path.join(vh_path, f))]
-    for f in files:
-        product = f.split(".")[-2]
-        print("parsing: {},{}".format(f,product))
 
-        vh_path = os.path.join(vh_dir,f)
-        vh_json = parser.parseVH(vh_path)#,product=product)
-        # pprint.pprint(vh_json)
-        vh_dates = vh_json['attr'][0]['date']
-        date_start = datetime.strptime(vh_dates[0], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
-        date_end = datetime.strptime(vh_dates[-1], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
-        if SAVE_VH:
-            vh_json_file = "vh_{}_json_{}_{}.json".format(product,date_start,date_end)
-            vh_json_path = os.path.join(temp_dir,vh_json_file)
-            print("Saving VH JSON file \'{}\'".format(vh_json_path))
-            with open(vh_json_path, 'w') as outfile:
-                try:
-                    json.dump(vh_json, outfile)
-                except Exception as e:
-                    print("Failed to save \'{}\'. Error: {}".format(vh_json_path,e))
 if GET_C5:
     # scrape
-    # c5_src = urlparse(c5_src_url)
-    # c5_storage = "temp/temp_{}".format(c5_src.netloc)
     scraper.getCmipModelData(c5_src.geturl(),c5_dir,model='inmcm4',
                         experiment='rcp45',spatial="16th",debug=3) 
-if PARSE_C5:
-    # parse
-    c5_path = c5_dir #os.path.join(project_base,c5_dir)
-    print(c5_path)
-    files = [f for f in os.listdir(c5_path) if os.path.isfile(os.path.join(c5_path, f))]
+
+
+if PARSE_VH:
+    files = [f for f in os.listdir(vh_dir) if os.path.isfile(os.path.join(vh_dir, f))]
     for f in files:
+        prod_path = os.path.join(vh_dir,f)    
+        product = f.split(".")[-2]
+        vh_json = parser.parseVH(prod_path)#,product=product)
+        saveUshmData(temp_dir,vh_json,product)
+
+if PARSE_C5:
+    # parse    # c5_path = c5_dir #os.path.join(project_base,c5_dir)
+    files = [f for f in os.listdir(c5_dir) if os.path.isfile(os.path.join(c5_dir, f))]
+    for f in files:
+        prod_path = os.path.join(c5_dir,f)        
         product = f.split("_")[0]
-        print("parsing: {},{}".format(f,product))
+        c5_json = parser.parseCmip(prod_path,product=product)
+        saveUshmData(temp_dir,c5_json,product)
+    
+   
 
-        c5_path = os.path.join(c5_dir,f)
-        c5_json = parser.parseCmip(c5_path,product=product)
-        # pprint.pprint(c5_json['prod'][0]['mask'])
-        c5_dates = c5_json['attr'][0]['date']
-        date_start = datetime.strptime(c5_dates[0], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
-        date_end = datetime.strptime(c5_dates[-1], "%Y-%m-%d %H:%M:%S").date().strftime('%Y-%m-%d')
-        if SAVE_C5:
-            c5_json_file = "c5_{}_json_{}_{}.json".format(product,date_start,date_end)
-            c5_json_path = os.path.join(temp_dir,c5_json_file)
-            print("Saving C5 JSON file \'{}\'".format(c5_json_path))
-            with open(c5_json_path, 'w') as outfile:
-                try:
-                    json.dump(c5_json, outfile)
-                except Exception as e:
-                    print("Failed to save \'{}\'. Error: {}".format(c5_json_path,e))
-            # break
-        
-
-
-json_files = [f for f in os.listdir(temp_dir) if os.path.isfile(os.path.join(temp_dir, f))]
-print(json_files)
 # for preprocessor
 # state_fips = {"Washington"             :  "53"}
 # state_fips = {"Louisiana"              :  "22"}
-state_fips = {"Maine"              :  "23"}
+# state_fips = {"Maine"              :  "23"}
+state_fips = {
+   "Connecticut"            :  "09",
+   "Maine"                  :  "23",
+   "Massachusetts"          :  "25",
+   "New Hampshire"          :  "33",
+   "Rhode Island"           :  "44",
+   "Vermont"                :  "50"
+}
+
+# state_fips = []
 
 if SAVE_VH:
-    vh_json_files = [f for f in json_files if "vh" in f]
-    for vh_json_file in vh_json_files:
-        vh_json_path = os.path.join(temp_dir,vh_json_file)
-        try:
-            print("Loading VH JSON file \'{}\'".format(vh_json_path))
-            vh_json = json.load(open(vh_json_path))
-        except Exception as e:
-            print("Failed to open \'{}\'. Error: {}".format(vh_json_path,e))
+    vh_list = loadUshmData(temp_dir,prod="vh")
+    # preprocessor
+    for vh_json in vh_list:
+        if QUICK:
+            preproc.run(vh_json,fips=state_fips,target=['TCI'], plot=True,debug=VERBOSITY) # plot =>savefig, target=['TCI','VHI'],
+        else:
+            preproc.run(vh_json,fips=state_fips,plot=True,debug=VERBOSITY) # plot =>savefig, target=['TCI','VHI'],
 
-        # preprocessor
-        preproc.run(vh_json,fips=state_fips,plot=True,debug=3) # plot =>savefig, target=['TCI','VHI'],
 
 if SAVE_C5:
-    c5_json_files = [f for f in json_files if "c5" in f]
-    for c5_json_file in c5_json_files:
-        c5_json_path = os.path.join(temp_dir,c5_json_file)
-        try:
-            print("Loading C5 JSON file \'{}\'".format(c5_json_path))
-            c5_json = json.load(open(c5_json_path))
-        except Exception as e:
-            print("Failed to open \'{}\'. Error: {}".format(c5_json_path,e))
-
+    for prod in ['pr','tasmin','tasmax']:
+        c5_list = loadUshmData(temp_dir,prod=prod)
         # preprocessor
-        preproc.run(c5_json,fips=state_fips,plot=True,debug=3) # plot =>savefig, target=['tasmax'], limit=3,
+        for c5_json in c5_list:
+            if QUICK:
+                preproc.run(c5_json,fips=state_fips,limit=1,plot=True,debug=VERBOSITY) # plot =>savefig, target=['tasmax'], limit=3,
+            else:
+                preproc.run(c5_json,fips=state_fips,plot=True,debug=VERBOSITY) # plot =>savefig, target=['tasmax'], limit=3,
 
 ################################################################################
 
@@ -209,7 +213,7 @@ if SAVE_BQ:
     vci_data = []
     tci_data = []
     vhi_data = []
-    print("Building dataframe...")
+    print("[{}] Building dataframe...".format(__file__))
     for state in temp:
         # print(temp[state])
         # skip JSON with all for now
@@ -228,7 +232,7 @@ if SAVE_BQ:
         # for dict in [vhi_data]: #[pr_data,vci_data]:
             dfs_prod = []
             for tmp in dict:
-                df = pd.DataFrame(tmp)  
+                df = pd.DataFrame(tmp) 
                 # Need to clean-up some of the data; rename mean column as type and remove type column
                 # TODO: future revision will properly name columns
                 # ref: https://stackoverflow.com/questions/19758364/rename-specific-columns-in-pandas
@@ -243,13 +247,19 @@ if SAVE_BQ:
                     df.drop(columns=['type'],inplace=True) 
                     dfs_prod.append(df)
                 except Exception as e:
-                    print("Error: {} \ndata: {}".format(e,tmp))
+                    print("[{}] Error: {} \ndata: {}".format(__file__,e,tmp))
             # need to combine like products with different dates
-            df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_prod)
-            dfs_final.append(df_prod)
+            if dfs_prod:
+                df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_prod)
+                dfs_final.append(df_prod)
+            else:
+                print("[{}] \'dfs_prod\' length is {}. Did no reduce.".format(__file__,len(dfs_prod)))
 
         # ref: https://stackoverflow.com/questions/23668427/pandas-three-way-joining-multiple-dataframes-on-columns
-        df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
+        if dfs_final:
+            df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
+        else:
+            print("[{}] \'dfs_final\' length is {}. Did no reduce.".format(__file__,len(dfs_prod)))
 
     # start BQ
     project = "eecs-e6893-edu"
@@ -257,7 +267,9 @@ if SAVE_BQ:
     # tmp_dir = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/usheatmap'.format(bucket)
     dataset = 'usheatmap' #the name of output dataset in BigQuery
     # table_name = 'initial'
-    table_name = 'final'
+    table_name = 'training_data'
+    # table_name = 'test'
+    # table_name = 'sandbox'
     table_id = '{0}.{1}'.format(dataset,table_name)
 
     credentials = service_account.Credentials \
@@ -274,9 +286,11 @@ if SAVE_BQ:
     # print("Node results stored in BigQuery table \'{0}.{1}\'...".format(dataset, vh_table)) 
     #DATA_PATH = "gs://eecs-e6893-edu/input/hw2/q1.txt"
 
-    print("Uploading \'df_final\' dataframe to \'{}\' table.".format(table_id))
+    print("[{}] Uploading \'df_final\' dataframe to \'{}\' table.".format(__file__,table_id))
     print(df_final.head())
+    print("\n")
     pandas_gbq.to_gbq(df_final, table_id, project_id=project,if_exists='replace')
+    # pandas_gbq.to_gbq(df_final, table_id, project_id=project,if_exists='append')
 
 ################################################################################
 
