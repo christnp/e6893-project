@@ -29,7 +29,7 @@ SAVE_VH = False     # set TRUE to save parsed output as local JSON file
 
 GET_C5 = False      # set TRUE to retrieve raw CMIP-5 data from FTP server
 PARSE_C5 = False    # set TRUE to parse CMIP-5 data
-SAVE_C5 = True     # set TRUE to save parsed output as local JSON file
+SAVE_C5 = False     # set TRUE to save parsed output as local JSON file
 # Set PARSE_C5 to FALSE and SAVE_C5 to TRUE to load already saved JSON file without
 # reparsing/resaving data as JSON
 
@@ -184,7 +184,6 @@ if SAVE_BQ:
         f_split = f.split('_')
         state = f_split[0]
         product = f_split[1]
-
         if state not in temp:
             temp[state] = {
                 'pr':  [],
@@ -214,6 +213,8 @@ if SAVE_BQ:
     tci_data = []
     vhi_data = []
     print("[{}] Building dataframe...".format(__file__))
+    dfs_final = []
+    dfs_state = []
     for state in temp:
         # print(temp[state])
         # skip JSON with all for now
@@ -226,41 +227,81 @@ if SAVE_BQ:
         tci_data = [json.load(open(x)) for x in temp[state]['tci']]
         vhi_data = [json.load(open(x)) for x in temp[state]['vhi']]
 
-        common = ['date','centroid_lon','centroid_lat','state','county']
-        dfs_final = []
-        for dict in [tasmin_data,tasmax_data,pr_data,vci_data,tci_data,vhi_data]: #[pr_data,vci_data]:
+        state_common = ['date','centroid_lon','centroid_lat','state','county']
+        dfs_prod = []
+
+        for prod in [tasmin_data,tasmax_data,pr_data,vci_data,tci_data,vhi_data]: #[pr_data,vci_data]:
         # for dict in [vhi_data]: #[pr_data,vci_data]:
-            dfs_prod = []
-            for tmp in dict:
-                df = pd.DataFrame(tmp) 
+            dfs_date = []            
+            for date in prod:
+                product = date[0]['type']
+                df = pd.DataFrame(date) 
                 # Need to clean-up some of the data; rename mean column as type and remove type column
                 # TODO: future revision will properly name columns
                 # ref: https://stackoverflow.com/questions/19758364/rename-specific-columns-in-pandas
                 try:
                     # convert date string to datetime
                     df['date']= pd.to_datetime(df['date']) 
-                    if(tmp[0]['type'] in ['VCI','TCI','VHI']):
+                    if(date[0]['type'] in ['VCI','TCI','VHI']):
                         df['date'] = df["date"] +  pd.Timedelta(days=1)
                     # rename mean column to the product type
-                    df.rename(columns={'mean':tmp[0]['type'].lower()}, inplace=True)
+                    df.rename(columns={'mean':date[0]['type'].lower()}, inplace=True)
                     # remove the 'type' column (not needed)
                     df.drop(columns=['type'],inplace=True) 
-                    dfs_prod.append(df)
+                    dfs_date.append(df)
                 except Exception as e:
-                    print("[{}] Error: {} \ndata: {}".format(__file__,e,tmp))
+                    print("[{}] Error: {} \ndata: {}".format(__file__,e,date))
+            # we now have a dataframes for a single product for a single state over all dates
+            # merge product/state dataframes and append product list
             # need to combine like products with different dates
-            if dfs_prod:
-                df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_prod)
-                dfs_final.append(df_prod)
+            if dfs_date:
+                print("[{}] >> Merging {}'s \'{}\'product dataframes...".format(__file__,state,product))
+                # df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_prod)
+                df_prod = reduce(lambda left, right: pd.merge(left,right,how="outer"), dfs_date)
+                # print("prod:\n")
+                # print(df_prod.head(5))
+                # dfs_final.append(df_prod)
+                dfs_prod.append(df_prod)
             else:
-                print("[{}] \'dfs_prod\' length is {}. Did no reduce.".format(__file__,len(dfs_prod)))
+                print("[{}] \'dfs_prod\' length is {}. Did no reduce.".format(__file__,len(dfs_date)))
 
+        # we now have all products for all dates for as single state;
+        # merge product dataframes into a single state dataframe and append state df list
         # ref: https://stackoverflow.com/questions/23668427/pandas-three-way-joining-multiple-dataframes-on-columns
-        if dfs_final:
-            df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
+        # if dfs_final:
+        if dfs_prod:
+            print("[{}] > Merging {} state dataframes...".format(__file__,state))
+            # df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
+            df_state = reduce(lambda left, right: pd.merge(left,right, on=state_common), dfs_prod)
+            dfs_state.append(df_state)
         else:
             print("[{}] \'dfs_final\' length is {}. Did no reduce.".format(__file__,len(dfs_prod)))
 
+    ############################################################################
+    # Now we have a collection of product dataframes for each state; merge the 
+    # state dataframes into a single final dataframe
+    ############################################################################
+    # The final dataframe
+    final_common = ['date','centroid_lon','centroid_lat','state','county']
+    if dfs_state:
+        # for i,x in enumerate(dfs_state):
+        #     print(dfs_state[i].head(5))
+        print("[{}] Concatentate state dataframes...".format(__file__))
+        # df_final = reduce(lambda left, right: pd.merge(left,right, on=common), dfs_final)
+        # df_final = reduce(lambda left, right: pd.merge(left,right, on=final_common), dfs_state)
+        df_final = pd.concat(dfs_state)
+        print(df_final)
+        vci = df_final.index[df_final['vci'] != -1].tolist()
+        tci = df_final.index[df_final['tci'] != -1].tolist()
+        vhi = df_final.index[df_final['vhi'] != -1].tolist()
+
+        for idx in vci:
+            print(df_final.loc[idx])
+
+
+    else:
+        print("[{}] \'dfs_final\' length is {}. Did no reduce.".format(__file__,len(dfs_prod)))
+    # sys.exit()
     # start BQ
     project = "eecs-e6893-edu"
     # bucket = "eecs-e6893-edu"  
@@ -287,6 +328,8 @@ if SAVE_BQ:
     #DATA_PATH = "gs://eecs-e6893-edu/input/hw2/q1.txt"
 
     print("[{}] Uploading \'df_final\' dataframe to \'{}\' table.".format(__file__,table_id))
+    print(df_final.info())
+    print(df_final.groupby('date').state.nunique())
     print(df_final.head())
     print("\n")
     pandas_gbq.to_gbq(df_final, table_id, project_id=project,if_exists='replace')
