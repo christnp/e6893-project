@@ -338,6 +338,9 @@ class UshmDataParser():
             'data':     vh_vhi_new.tolist() # to get np.ndarray do np.array(json['data'])
         })
 
+        # vegetation condition index (vci) = % change from previous year [this is "a proxy for moisture condition"]
+        # temperature condition index (tci) = % change from previous year [this is a "proxy for thermal condition"]
+
         if debug > 1:
             pprint.pprint(vh_json)
 

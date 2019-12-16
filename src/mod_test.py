@@ -242,7 +242,7 @@ if SAVE_BQ:
                 try:
                     # convert date string to datetime
                     df['date']= pd.to_datetime(df['date']) 
-                    if(date[0]['type'] in ['VCI','TCI','VHI']):
+                    if(date[0]['type'] in ['VCI','TCI','VHI']): # the VH dates are off by one day, probably due to MM/DD conversion
                         df['date'] = df["date"] +  pd.Timedelta(days=1)
                     # rename mean column to the product type
                     df.rename(columns={'mean':date[0]['type'].lower()}, inplace=True)

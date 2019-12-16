@@ -1,0 +1,53 @@
+<html>
+{% load static %}
+<head>
+    <meta charset="utf-8">
+    <title>US Heat Map (rev. 0)</title>
+    <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <!-- for d3 zoom-->
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-dispatch.v1.min.js"></script>
+    <script src="https://d3js.org/d3-ease.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-selection.v1.min.js"></script>
+    <script src="https://d3js.org/d3-timer.v1.min.js"></script>
+    <script src="https://d3js.org/d3-transition.v1.min.js"></script>
+    <script src="https://d3js.org/d3-drag.v1.min.js"></script>
+    <script src="https://d3js.org/d3-zoom.v1.min.js"></script>
+    <!-- local javascript function -->
+    <script src="{% static "js/heatmap.js" %}"></script>
+    <script src="{% static "js/require.js" %}"></script>
+    <!-- style -->
+    <link href="http://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="{% static "css/heatmap.css" %}">
+</head>
+
+<body>
+<div id="title">
+    <h1>US Heat Map - New England </h1>
+    <h2></h2>
+</div>
+<div id="container" class="svg-container">
+    <!-- <svg></svg> -->
+</div>
+<script>
+    // Django data import
+    var Data= {{ data | safe}}
+    // Contiguous US TopoJSON
+    // var county_topojson = "{% static "geojson/cont_us_counties.json"%}";
+    // var state_topojson = "{% static "geojson/cont_us_states.json"%}";
+
+    // New England TopoJSON
+    var county_topojson = "{% static "geojson/ne_counties.json"%}"; // New England
+    var state_topojson = "{% static "geojson/ne_states.json"%}"; // New England
+    var state_fips = "{% static "geojson/cont_fipsToState.json"%}"; // New England
+    
+    
+    // call the heat map function
+    heatmap('#container', Data,county_topojson,state_topojson,state_fips)
+
+</script>
+</body>
+</html>
