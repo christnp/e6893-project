@@ -194,40 +194,44 @@
 
     <hr class="m-0">
 
-  <!--
-    Bootstrap Template Requirements
-  -->
-  <!-- Bootstrap core JavaScript -->
-  <script src="{% static "vendor/jquery/jquery.min.js" %}"></script>
-  <script src="{% static "vendor/bootstrap/js/bootstrap.bundle.min.js" %}"></script>
-  <!-- Plugin JavaScript -->
-  <script src="{% static "vendor/jquery-easing/jquery.easing.min.js" %}"></script>
-  <!-- Custom scripts for this template -->
-  <script src="{% static "js/resume.min.js" %}"></script>
+    <!--
+        Bootstrap Template Requirements
+    -->
+    <!-- Bootstrap core JavaScript -->
+    <script src="{% static "vendor/jquery/jquery.min.js" %}"></script>
+    <script src="{% static "vendor/bootstrap/js/bootstrap.bundle.min.js" %}"></script>
+    <!-- Plugin JavaScript -->
+    <script src="{% static "vendor/jquery-easing/jquery.easing.min.js" %}"></script>
+    <!-- Custom scripts for this template -->
+    <script src="{% static "js/resume.min.js" %}"></script>
 
-   <!--
-    US Heatmap Requirements
-  -->
-  <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
-  <script src="http://d3js.org/topojson.v1.min.js"></script>
-  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
-  <script src="https://d3js.org/d3-format.v1.min.js"></script>
-  <!-- for d3 zoom-->
-  <script src="https://d3js.org/d3-color.v1.min.js"></script>
-  <script src="https://d3js.org/d3-dispatch.v1.min.js"></script>
-  <script src="https://d3js.org/d3-ease.v1.min.js"></script>
-  <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
-  <script src="https://d3js.org/d3-selection.v1.min.js"></script>
-  <script src="https://d3js.org/d3-timer.v1.min.js"></script>
-  <script src="https://d3js.org/d3-transition.v1.min.js"></script>
-  <script src="https://d3js.org/d3-drag.v1.min.js"></script>
-  <script src="https://d3js.org/d3-zoom.v1.min.js"></script>
-  <!-- local javascript function -->
-  <script src="{% static "js/heatmap.js" %}"></script>
-  <script src="{% static "js/require.js" %}"></script>
-
-  <script>
+    <!--
+        US Heatmap Requirements
+    -->
+    <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
+    <script src="https://d3js.org/d3-format.v1.min.js"></script>
+    <!-- for d3 zoom-->
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-dispatch.v1.min.js"></script>
+    <script src="https://d3js.org/d3-ease.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-selection.v1.min.js"></script>
+    <script src="https://d3js.org/d3-timer.v1.min.js"></script>
+    <script src="https://d3js.org/d3-transition.v1.min.js"></script>
+    <script src="https://d3js.org/d3-drag.v1.min.js"></script>
+    <script src="https://d3js.org/d3-zoom.v1.min.js"></script>
+    <!-- local javascript function -->
+    <script src="{% static "js/heatmap.js" %}"></script>
+    <script src="{% static "js/require.js" %}"></script>
+    <!--
+        Google Analytics Requirements
+    -->
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-36NPWYVY5C"></script>
+    <script>
         // Django data import
         var Data= {{ data | safe}}
         // Contiguous US TopoJSON
@@ -242,7 +246,13 @@
         
         // call the heat map function
         heatmap('#container', Data,county_topojson,state_topojson,state_fips)
-    
+        
+        // call Google Analytics tracker
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-36NPWYVY5C');
     </script>
 
 </body>
