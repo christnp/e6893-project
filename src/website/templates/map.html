@@ -73,9 +73,10 @@
     </div>
   </nav>
 
-  <div class="container-fluid p-0">
+  <!-- <div id="fullpage" class="container-fluid p-0"> -->
+  <div class="heatmap-page container-fluid p-0">
 
-    <section class="resume-section p-3 p-lg-5 d-flex align-items-center" id="about">
+    <section class="heatmap-section p-3 p-lg-5 d-flex align-items-center" id="about">
       <div class="w-100">
         <h2 class="mb-0">Predicting
           <span class="text-primary">U.S. Crop Performance</span>
@@ -109,14 +110,14 @@
           <div class="heatmap-content">
             <h3 id="pr-title" class="mb-0">Precipitation (New England Region)</h3>
             <div id="pr-subtitle" class="subheading mb-3"><br></div>
-            <div id="pr-container" class="svg-container"></div>
+            <div id="pr-container" class="svg-container pr-geo"></div>
             <!-- <div id="pr-legend"></div> -->
           </div>
           <!-- <div class="resume-date text-md-right">
             <span class="text-primary">March 2013 - Present</span>
           </div> -->
         </div>
-       
+       </div>
     </section>
 
     <hr class="m-0">
@@ -135,6 +136,7 @@
             <span class="text-primary">March 2013 - Present</span>
           </div> -->
         </div>
+      </div>
        
     </section>
 
@@ -154,6 +156,8 @@
             <span class="text-primary">March 2013 - Present</span>
           </div> -->
         </div>
+      </div>
+
     </section>
     
     <hr class="m-0">
@@ -172,6 +176,8 @@
             <span class="text-primary">March 2013 - Present</span>
           </div> -->
         </div>
+      </div>
+
     </section>
     
     <hr class="m-0">
@@ -190,6 +196,8 @@
             <span class="text-primary">March 2013 - Present</span>
           </div> -->
         </div>
+      </div>
+
     </section>
 
     <hr class="m-0">
@@ -204,7 +212,11 @@
     <script src="{% static "vendor/jquery-easing/jquery.easing.min.js" %}"></script>
     <!-- Custom scripts for this template -->
     <script src="{% static "js/resume.min.js" %}"></script>
-
+    <!-- Scripts for fullpage scroll -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="{% static "js/jquery.fullpage.min.js" %}"></script>
+    <script src="{% static "js/jquery.scrollify.js" %}"></script>
+    
     <!--
         US Heatmap Requirements
     -->
@@ -232,6 +244,9 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-36NPWYVY5C"></script>
     <script>
+        // full page scroll
+        $('#fullpage').fullpage();
+
         // Django data import
         var Data= {{ data | safe}}
         // Contiguous US TopoJSON

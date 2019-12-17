@@ -38,7 +38,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         svg_handle.append("g")
             .attr("class", legend_class)
             .attr("transform", "translate(20,20)");
-  
+
         var legend = d3.legendColor()
             .labelFormat(d3.format(format))
             .shapeWidth(20)
@@ -46,7 +46,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .titleWidth(200)
             .orient('vertical')
             .scale(scale);
-  
+
         svg_handle.select("."+legend_class)
             // .attr("")
             .style("font-size", "10px")
@@ -61,7 +61,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         // console.log(pr_obj)
         if (data_obj != null) { // undefined
             // console.log(pr_obj.value)
-            if(type == 'pr') 
+            if(type == 'pr')
                 return data_obj.value != -1 ? pr_colors(data_obj.value) : undef_color;
             else if(type == 'tasmin')
                 return data_obj.value != -1 ? tasmin_colors(data_obj.value) : undef_color
@@ -84,7 +84,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         var state_name = fips[topo_obj.properties.STATEFP];
         var county_name = topo_obj.properties.NAME;
         // preset tipText and value
-        var tipText = county_name + " County, " + state_name; 
+        var tipText = county_name + " County, " + state_name;
         var value = NaN;
         var date = ""
         // check if data object is undefined, same check for .value
@@ -100,8 +100,8 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
                 else
                     value = data_obj.value.toFixed(3);
 
-                tipText = type + ": " + value + "  " + typeUnits(type)  
-                date = ", " + data_obj.date              
+                tipText = type + ": " + value + "  " + typeUnits(type)
+                date = ", " + data_obj.date
             }
         }
         // display the tooltip
@@ -118,7 +118,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .text(county_name + " County, " + state_name + date);
         // d3.select(this).attr("fill","red"); // NC: moved up one level
     }
-    
+
 
     // compute total for each state.
     // https://stackoverflow.com/questions/31132813/d3-nest-sum-for-object-array-data
@@ -146,14 +146,14 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         if(d.value.tci != -1) tciValues.push(d.value.tci)
 
         // build the data array
-        prData.set(d.geoid, {"date":d.date,"value": d.value.pr}); 
-        tasminData.set(d.geoid, {"date":d.date,"value": d.value.tasmin}); 
-        tasmaxData.set(d.geoid, {"date":d.date,"value": d.value.tasmax}); 
-        vciData.set(d.geoid, {"date":d.date,"value": d.value.vci}); 
-        tciData.set(d.geoid, {"date":d.date,"value": d.value.tci}); 
-        // vhiData.set(d.geoid, {"date":d.date,"value": d.value.vhi}); 
-        
-        // prData.set(d.date, {"geoid":d.geoid,"value": d.value.vhi}); 
+        prData.set(d.geoid, {"date":d.date,"value": d.value.pr});
+        tasminData.set(d.geoid, {"date":d.date,"value": d.value.tasmin});
+        tasmaxData.set(d.geoid, {"date":d.date,"value": d.value.tasmax});
+        vciData.set(d.geoid, {"date":d.date,"value": d.value.vci});
+        tciData.set(d.geoid, {"date":d.date,"value": d.value.tci});
+        // vhiData.set(d.geoid, {"date":d.date,"value": d.value.vhi});
+
+        // prData.set(d.date, {"geoid":d.geoid,"value": d.value.vhi});
     });
 
     // console.log("prData: ",prData)
@@ -166,23 +166,36 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
     // ref: https://www.jasondavies.com/maps/transition/
     // ref: https://github.com/d3/d3-geo-projection/issues/128
     // Width and Height of the whole visualization
-    const width =  600;//window.innerWidth;//975;
+    const width =  600; //600;//window.innerWidth;//975;
     const height = 400;//window.innerHeight;//610;
 
     // pr svg
     var svg_pr = d3.select("div#pr-container")
+        // .append("div")
+        // .style("max-width",'800px')
         // Container class to make it responsive.
         .append("svg")
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", [0, 0, width, height])
         // Class to make it responsive.
         .classed("svg-content-res", true)
-        .attr("width", width)
-        .attr("height", height);
+        //.attr("width", width)
+        //.attr("height", height);
+        .attr("width", "100%");
         // FIXME: uncomment when zoom enabled?
         // .on("click", reset);
+        // .on("click", function () {
+        //     svg_pr.transition()
+        //     .attr("x", 250)
+        //     // .attr("width", 100)
+        //     // .attr("height", 100)
+        //     .attr("opacity", 0.5)
+        //     // .attr("fill", "red")
+        //     .delay(500)
+        //     .duration(2500); // Set Duration of 5000ms (5 seconds)
+        // });
     var g_pr = svg_pr.append( "g" )
-    
+
     // tasmin svg
     var svg_tasmin = d3.select("div#tasmin-container")
         // Container class to make it responsive.
@@ -191,8 +204,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         .attr("viewBox", [0, 0, width, height])
         // Class to make it responsive.
         .classed("svg-content-res", true)
-        .attr("width", width)
-        .attr("height", height)
+        //.attr("width", width)
+        //.attr("height", height);
+        .attr("width", "100%");
         // .on("click", reset);
     var g_tasmin = svg_tasmin.append( "g" )
 
@@ -204,8 +218,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         .attr("viewBox", [0, 0, width, height])
         // Class to make it responsive.
         .classed("svg-content-res", true)
-        .attr("width", width)
-        .attr("height", height)
+        //.attr("width", width)
+        //.attr("height", height);
+        .attr("width", "100%");
         // .on("click", reset);
     var g_tasmax = svg_tasmax.append( "g" )
 
@@ -217,11 +232,12 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         .attr("viewBox", [0, 0, width, height])
         // Class to make it responsive.
         .classed("svg-content-res", true)
-        .attr("width", width)
-        .attr("height", height)
+        //.attr("width", width)
+        //.attr("height", height);
+        .attr("width", "100%");
         // .on("click", reset);
     var g_vci = svg_vci.append( "g" )
-   
+
     // tci svg
     var svg_tci = d3.select("div#tci-container")
         // Container class to make it responsive.
@@ -230,11 +246,12 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         .attr("viewBox", [0, 0, width, height])
         // Class to make it responsive.
         .classed("svg-content-res", true)
-        .attr("width", width)
-        .attr("height", height)
+        //.attr("width", width)
+        //.attr("height", height);
+        .attr("width", "100%");
         // .on("click", reset);
     var g_tci = svg_tci.append( "g" )
-        
+
     // define mouseover tooltip
     var tooltip = d3.select("body").append("div").attr("class","tooltip");
 
@@ -255,12 +272,12 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
     var tasmin_ext = d3.extent(tasminValues)
     var tasmin_colors = d3.scaleLinear().domain(tasmin_ext).range(tasmin_range)
     createLegend(svg_tasmin,tasmin_colors,'tasmin',".1f") // create the legend
-    
+
     var tasmax_range = ["beige", "orange"];
     var tasmax_ext = d3.extent(tasmaxValues)
     var tasmax_colors = d3.scaleLinear().domain(tasmax_ext).range(tasmax_range)
     createLegend(svg_tasmax,tasmax_colors,'tasmax',".1f") // create the legend
-    
+
     var vci_range = ["beige", "#3DF700"];
     var vci_ext = d3.extent(vciValues)
     var vci_colors = d3.scaleLinear().domain(vci_ext).range(vci_range)
@@ -276,7 +293,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
     d3.queue()
         .defer(d3.json,county_topojson) // county TopoJSON file
         .defer(d3.json,state_topojson)  // state TopoJSON file
-        .defer(d3.json,state_fips)  // state fips JSON file        
+        .defer(d3.json,state_fips)  // state fips JSON file
         .await(ready)
 
     // callback function for d3.queue() async load
@@ -295,10 +312,10 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
 
         // projection (fit to states)
         var projection = d3.geoAlbersUsa()
-            .fitExtent([ [100,0],[width,height] ], states) 
-            // .fitSize([460,580], states) 
-            // .fitWidth(460, states) 
-            // .fitHeight(580, states) 
+            .fitExtent([ [100,0],[width,height] ], states)
+            // .fitSize([460,580], states)
+            // .fitWidth(460, states)
+            // .fitHeight(580, states)
 
         // Use the county TopoJSON to draw counties with values
         // console.log(county_obj)
@@ -316,7 +333,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
         var state_mesh = topojson.mesh(state_obj,state_obj.objects.states)
         var county_mesh = topojson.mesh(county_obj,county_obj.objects.counties)
 
-        /* 
+        /*
          * pr data map
         */
         // d3.select("h3#pr-title")
@@ -328,7 +345,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .attr("stroke-linejoin", "round")
             // .datum(topojson.mesh(us, us.objects.layer1, function(a, b) { return a !== b }))
             .attr("d", path(topojson.mesh(county_obj, county_obj.objects.counties, (a, b) => a !== b)));
-     
+
         // pr region shadow
         // TODO: put a shadow around the whole region
         // svg_pr.selectAll("path")
@@ -345,9 +362,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .attr("class",".state-boundary")
             .attr("d",path)
             // .attr("fill","green");
-            .attr("fill", function(d) { 
+            .attr("fill", function(d) {
                 var data_obj = prData.get(d.properties.GEOID);
-                return getCountyFill(d,data_obj,'pr') 
+                return getCountyFill(d,data_obj,'pr')
             })
             .on("mouseover",function(d) {
                 var subtitle_id = "#pr-subtitle";
@@ -405,7 +422,7 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
                 .append('br');//.text(" ");
 
                 d3.select(this)
-                    .attr("fill",function(d) { 
+                    .attr("fill",function(d) {
                         var data_obj = prData.get(d.properties.GEOID)
                         return getCountyFill(d,data_obj,'pr')
                     });
@@ -416,15 +433,15 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .datum(state_mesh,function(a,b) { return a != b;})
             .attr("class","state-boundary")
             .attr("d",path)
-        
-       
+
+
         svg_pr.append("path")
             .datum(county_mesh,function(a,b) { return a != b;})
             .attr("class","county-boundary")
             .attr("d",path)
-         
 
-        /* 
+
+        /*
          * tasmin data map
         */
         svg_tasmin.append("path")
@@ -439,9 +456,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .append("path")
             .attr("class",".state-border")
             .attr("d",path)
-            .attr("fill", function(d) { 
+            .attr("fill", function(d) {
                 var data_obj = tasminData.get(d.properties.GEOID);
-                return getCountyFill(d,data_obj,'tasmin') 
+                return getCountyFill(d,data_obj,'tasmin')
             })
             .on("mouseover",function(d) {
                 var subtitle_id = "#tasmin-subtitle";
@@ -460,26 +477,26 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
                 d3.select("#tasmin-subtitle")
                 .text("")
                 .append('br');//.text(" ");
-                
+
                 d3.select(this)
-                    .attr("fill",function(d) { 
+                    .attr("fill",function(d) {
                         var data_obj = tasminData.get(d.properties.GEOID)
                         return getCountyFill(d,data_obj,'tasmin')
                     });
             });
-        
+
         // add black boundary around states
         svg_tasmin.append("path")
             .datum(state_mesh,function(a,b) { return a != b;})
             .attr("class","state-boundary")
             .attr("d",path)
-        
+
         svg_tasmin.append("path")
             .datum(county_mesh,function(a,b) { return a != b;})
             .attr("class","county-boundary")
             .attr("d",path)
-        
-        /* 
+
+        /*
          * tasmax data map
         */
         svg_tasmax.append("path")
@@ -495,9 +512,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .append("path")
             .attr("class",".state-border")
             .attr("d",path)
-            .attr("fill", function(d) { 
+            .attr("fill", function(d) {
                 var data_obj = tasmaxData.get(d.properties.GEOID);
-                return getCountyFill(d,data_obj,'tasmax') 
+                return getCountyFill(d,data_obj,'tasmax')
             })
             .on("mouseover",function(d) {
                 var subtitle_id = "#tasmax-subtitle";
@@ -516,26 +533,26 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
                 d3.select("#tasmax-subtitle")
                 .text("")
                 .append('br');//.text(" ");
-                
+
                 d3.select(this)
-                    .attr("fill",function(d) { 
+                    .attr("fill",function(d) {
                         var data_obj = tasmaxData.get(d.properties.GEOID)
                         return getCountyFill(d,data_obj,'tasmax')
                     });
             });
-        
+
         // add black boundary around states
         svg_tasmax.append("path")
             .datum(state_mesh,function(a,b) { return a != b;})
             .attr("class","state-boundary")
             .attr("d",path)
-        
+
         svg_tasmax.append("path")
             .datum(county_mesh,function(a,b) { return a != b;})
             .attr("class","county-boundary")
             .attr("d",path)
-        
-        /* 
+
+        /*
          * vci data map
         */
         svg_vci.append("path")
@@ -551,9 +568,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .append("path")
             .attr("class",".state-border")
             .attr("d",path)
-            .attr("fill", function(d) { 
+            .attr("fill", function(d) {
                 var data_obj = vciData.get(d.properties.GEOID);
-                return getCountyFill(d,data_obj,'vci') 
+                return getCountyFill(d,data_obj,'vci')
             })
             .on("mouseover",function(d) {
                 var subtitle_id = "#vci-subtitle";
@@ -572,26 +589,26 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
                 d3.select("#vci-subtitle")
                 .text("")
                 .append('br');//.text(" ");
-                
+
                 d3.select(this)
-                    .attr("fill",function(d) { 
+                    .attr("fill",function(d) {
                         var data_obj = vciData.get(d.properties.GEOID)
                         return getCountyFill(d,data_obj,'vci')
                     });
             });
-        
+
         // add black boundary around states
         svg_vci.append("path")
             .datum(state_mesh,function(a,b) { return a != b;})
             .attr("class","state-boundary")
             .attr("d",path)
-        
+
         svg_vci.append("path")
             .datum(county_mesh,function(a,b) { return a != b;})
             .attr("class","county-boundary")
             .attr("d",path)
-        
-        /* 
+
+        /*
          * tci data map
         */
         svg_tci.append("path")
@@ -607,9 +624,9 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             .append("path")
             .attr("class",".state-border")
             .attr("d",path)
-            .attr("fill", function(d) { 
+            .attr("fill", function(d) {
                 var data_obj = tciData.get(d.properties.GEOID);
-                return getCountyFill(d,data_obj,'tci') 
+                return getCountyFill(d,data_obj,'tci')
         })
         .on("mouseover",function(d) {
             var subtitle_id = "#tci-subtitle";
@@ -628,20 +645,20 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
             d3.select("#tci-subtitle")
             .text("")
             .append('br');//.text(" ");
-            
+
             d3.select(this)
-                .attr("fill",function(d) { 
+                .attr("fill",function(d) {
                     var data_obj = tciData.get(d.properties.GEOID)
                     return getCountyFill(d,data_obj,'tci')
                 });
         });
-    
+
     // add black boundary around states
     svg_tci.append("path")
         .datum(state_mesh,function(a,b) { return a != b;})
         .attr("class","state-boundary")
         .attr("d",path)
-    
+
         svg_tci.append("path")
         .datum(county_mesh,function(a,b) { return a != b;})
         .attr("class","county-boundary")
@@ -649,8 +666,8 @@ function heatmap(id, fData,county_topojson,state_topojson,state_fips) {
 
         /*
         * FIXME: Uncomment to enable zoom
-        */      
-        // svg_pr.call(zoom);        
+        */
+        // svg_pr.call(zoom);
     }
 
     function reset() {

@@ -9,53 +9,12 @@ import os
 # please have a look at
 # https://cloud.google.com/bigquery/docs/reference/libraries#client-libraries-install-nodejs
 # To get your credential
-
 app_dir = os.path.dirname(__file__)
 service_path = os.path.join(app_dir,'static/eecs-e6893-edu-56ce9c449829.json')
-
-print(os.path.exists(service_path))
-
 
 project_id = "eecs-e6893-edu"
 credentials = service_account.Credentials \
                 .from_service_account_file(service_path)
-
-def hello(request):
-    context = {}
-    context['content1'] = 'Hello World!'
-    return render(request, 'helloworld.html', context)
-
-def dashboard(request):
-    pandas_gbq.context.credentials = credentials
-    pandas_gbq.context.project = project_id
-
-    dataset = 'usheatmap'         # the name of dataset in BigQuery
-    table = 'final'   # the name of table in BigQuery
-    table_id = '{0}.{1}'.format(dataset,table)
-    # cols = ['ai', 'data','good','movie','spark'] # column names
-    data = {}
-    data['data'] = []
-
-    # query the table, return as pandas df.
-    SQL = "SELECT * FROM `{}` ORDER BY date ASC LIMIT 8".format(table_id)
-    df = pandas_gbq.read_gbq(SQL)
-    # iterate each row of the dataframe
-    tmp = {}
-    for index, row in df.iterrows():
-        dt_date = row['date'].to_pydatetime().strftime('%Y-%m-%d')
-
-        tmp = { 'date' : dt_date, \
-                'count' : { 'vci' : row['vci'], \
-                            'tci':row['tci'], \
-                            'vhi':row['vhi'], \
-                            'tasmin':row['tasmin'], \
-                            'tasmax':row['tasmax'], \
-                            'pr':row['pr'] \
-                        } \
-            }
-        data['data'].append(tmp)
-
-    return render(request, 'dashboard.html', data)
 
 def map(request):
     import json
@@ -115,7 +74,13 @@ def map(request):
                         } \
             }
 
+        data['data'].append(tmp)
 
+    # return render(request, 'map.html', {'results':data,'geojson':geojson_data})
+    return render(request, 'map.html', data)
+
+# Notes:
+# desired output, to organize by date
         # 'date1': [
         #   {
         #       'geoid': geoid1,
@@ -154,37 +119,67 @@ def map(request):
         #   }, ...
         # ]
 
-        data['data'].append(tmp)
 
-    # load the GeoJSON boundary file
-    # geojson = json.load(open('static/geojson/cb_2018_us_county_500k.json'))
-    # geojson_data = json.dumps(geojson) # json formatted string
-    # geojson_data = {'test':1}
-    # geojson.close()
+# hello world page
+def hello(request):
+    context = {}
+    context['content1'] = 'Hello World!'
+    return render(request, 'helloworld.html', context)
 
-    # return render(request, 'map.html', {'results':data,'geojson':geojson_data})
-    return render(request, 'map.html', data)
+# deprecated
+# def dashboard(request):
+#     pandas_gbq.context.credentials = credentials
+#     pandas_gbq.context.project = project_id
 
-def connection(request):
-    pandas_gbq.context.credentials = credentials
-    pandas_gbq.context.project = "Your-Project"
-    SQL1 = ''
-    df1 = pandas_gbq.read_gbq(SQL1)
+#     dataset = 'usheatmap'         # the name of dataset in BigQuery
+#     table = 'final'   # the name of table in BigQuery
+#     table_id = '{0}.{1}'.format(dataset,table)
+#     # cols = ['ai', 'data','good','movie','spark'] # column names
+#     data = {}
+#     data['data'] = []
 
-    SQL2 = ''
-    df2 = pandas_gbq.read_gbq(SQL2)
+#     # query the table, return as pandas df.
+#     SQL = "SELECT * FROM `{}` ORDER BY date ASC LIMIT 8".format(table_id)
+#     df = pandas_gbq.read_gbq(SQL)
+#     # iterate each row of the dataframe
+#     tmp = {}
+#     for index, row in df.iterrows():
+#         dt_date = row['date'].to_pydatetime().strftime('%Y-%m-%d')
 
-    data = {}
+#         tmp = { 'date' : dt_date, \
+#                 'count' : { 'vci' : row['vci'], \
+#                             'tci':row['tci'], \
+#                             'vhi':row['vhi'], \
+#                             'tasmin':row['tasmin'], \
+#                             'tasmax':row['tasmax'], \
+#                             'pr':row['pr'] \
+#                         } \
+#             }
+#         data['data'].append(tmp)
 
-    '''
-        TODO: Finish the SQL to query the data, it should be limited to 8 rows.
-        Then process them to format below:
-        Format of data:
-        {'n': [xxx, xxx, xxx, xxx],
-         'e': [{'source': xxx, 'target': xxx},
-                {'source': xxx, 'target': xxx},
-                ...
-                ]
-        }
-    '''
-    return render(request, 'connection.html', data)
+#     return render(request, 'dashboard.html', data)
+
+
+# def connection(request):
+#     pandas_gbq.context.credentials = credentials
+#     pandas_gbq.context.project = "Your-Project"
+#     SQL1 = ''
+#     df1 = pandas_gbq.read_gbq(SQL1)
+
+#     SQL2 = ''
+#     df2 = pandas_gbq.read_gbq(SQL2)
+
+#     data = {}
+
+#     '''
+#         TODO: Finish the SQL to query the data, it should be limited to 8 rows.
+#         Then process them to format below:
+#         Format of data:
+#         {'n': [xxx, xxx, xxx, xxx],
+#          'e': [{'source': xxx, 'target': xxx},
+#                 {'source': xxx, 'target': xxx},
+#                 ...
+#                 ]
+#         }
+#     '''
+#     return render(request, 'connection.html', data)

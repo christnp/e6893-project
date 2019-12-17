@@ -23,9 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '(e4xct$gh@lsagb9erz-rhfntyayp&7u&@2)77=s07bs_)5#ir'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True # set to true to get more feedback in webpage
 
-ALLOWED_HOSTS = ['christnp.pythonanywhere.com']
+ALLOWED_HOSTS = ['christnp.pythonanywhere.com','127.0.0.1']
 
 
 # Application definition

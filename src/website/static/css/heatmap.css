@@ -31,13 +31,13 @@ rect:hover {  fill:blue; }
     align:right;
     width:50px;
 } */
-
+/* 
 body {
     width:1060px;
     margin:50px auto;
     position: absolute;
     font-family: "Proxima Nova", "Montserrat", sans-serif;
-}
+} */
 
 /* h1, h2 {
     position: absolute;
@@ -63,12 +63,18 @@ h2 {
     padding-bottom: 10px;
     text-align: center;
 } */
+@media (min-width:992px) {
+    .svg-container {
+        height: 100%;
+    }
+  
+}
 .svg-container {    
     display: inline-block;
     position: relative;
     width: 100%;    
     /* height: 100%; */
-    padding-bottom: 100%; /* aspect ratio */
+    /*padding-bottom: 100%;*/ /* aspect ratio */ /* this was causing a lot of whitespace below*/
     vertical-align: top;
     overflow: hidden;
     

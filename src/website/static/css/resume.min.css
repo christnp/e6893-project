@@ -12,7 +12,8 @@ body {
 @media (min-width:992px) {
     body {
         padding-top: 0;
-        padding-left: 17rem
+        padding-left: 17rem;
+        overflow: hidden;
     }
 }
 
@@ -43,6 +44,8 @@ h3 {
 
 p.lead {
     font-size: 1.15rem;
+    /* width: 100%; */
+    /* font-size:1vw; */
     font-weight: 400
 }
 
@@ -165,6 +168,46 @@ section.resume-section .resume-item .resume-date {
     }
 }
 
+
+
+#fullpage {
+    height:100vh
+}
+#fullpage section {
+    height: 100vh
+
+}
+section.heatmap-section {
+    padding-top: 5rem !important;
+    padding-bottom: 5rem !important;
+    max-width: 75rem;
+}
+
+section.heatmap-section .heatmap-content {
+    /*min-width: 600px;*/
+    width: 90%;
+}
+section.heatmap-section .heatmap-item .heatmap-date {
+    min-width: none
+}
+
+@media (min-width:768px) {
+    section.heatmap-section {
+        min-height: 100vh
+    }
+
+    section.heatmap-section .heatmap-item .heatmap-date {
+        min-width: 18rem
+    }
+}
+
+@media (min-width:992px) {
+    section.heatmap-section {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important
+    }
+}
+
 .bg-primary {
     /* background-color: #bd5d38 !important */
     background-color: #285ca5 !important
@@ -187,3 +230,4 @@ a:hover {
     color: #0f2c53
 
 }
+
