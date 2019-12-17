@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 import pandas_gbq
 from google.oauth2 import service_account
+import os
 
 # Make sure you have installed pandas-gbq at first;
 # You can use the other way to query BigQuery.
@@ -9,9 +10,15 @@ from google.oauth2 import service_account
 # https://cloud.google.com/bigquery/docs/reference/libraries#client-libraries-install-nodejs
 # To get your credential
 
+app_dir = os.path.dirname(__file__)
+service_path = os.path.join(app_dir,'static/eecs-e6893-edu-56ce9c449829.json')
+
+print(os.path.exists(service_path))
+
+
 project_id = "eecs-e6893-edu"
 credentials = service_account.Credentials \
-                .from_service_account_file('/home/christnp/Development/e6893/gcp/EECS-E6893-edu-f676d83967fd.json')
+                .from_service_account_file(service_path)
 
 def hello(request):
     context = {}
@@ -34,7 +41,7 @@ def dashboard(request):
     df = pandas_gbq.read_gbq(SQL)
     # iterate each row of the dataframe
     tmp = {}
-    for index, row in df.iterrows():    
+    for index, row in df.iterrows():
         dt_date = row['date'].to_pydatetime().strftime('%Y-%m-%d')
 
         tmp = { 'date' : dt_date, \
@@ -74,7 +81,7 @@ def map(request):
     def getGeoid(row):
         statefp = row['state'].split("_")[0]
         countyfp = row['county'].split("_")[0]
-        return "{}{}".format(statefp,countyfp) 
+        return "{}{}".format(statefp,countyfp)
 
     # add the geoid (FIXME: this should have been included in original processing)
     df['geoid'] = df.apply (lambda row: getGeoid(row), axis=1)
@@ -87,13 +94,13 @@ def map(request):
     # pprint.pprint(j)
     # sys.exit()
     tmp = {}
-    for index, row in df.iterrows():    
+    for index, row in df.iterrows():
         dt_date = row['date'].to_pydatetime().strftime('%Y-%m-%d')
         if (dt_date != "2018-01-08"):
             continue;
         # statefp = row['state'].split("_")[0]
         # countyfp = row['county'].split("_")[0]
-        # geoid = "{}{}".format(statefp,countyfp) 
+        # geoid = "{}{}".format(statefp,countyfp)
         # geoid = SSCCC, SS = State FIPS, CCC = County FIPS
         # BQ has state = SS_Name, county = CCC_Name
 
@@ -115,7 +122,7 @@ def map(request):
         #       'values':   {
         #                       'vci': vci,
         #                       'tci': tci,
-        #                       ...    
+        #                       ...
         #                   }
         #   },
         #   {
@@ -123,7 +130,7 @@ def map(request):
         #       'values':   {
         #                       'vci': vci,
         #                       'tci': tci,
-        #                       ...    
+        #                       ...
         #                   }
         #   }, ...
         # ]
@@ -134,7 +141,7 @@ def map(request):
         #       'values':   {
         #                       'vci': vci,
         #                       'tci': tci,
-        #                       ...    
+        #                       ...
         #                   }
         #   },
         #   {
@@ -142,13 +149,13 @@ def map(request):
         #       'values':   {
         #                       'vci': vci,
         #                       'tci': tci,
-        #                       ...    
+        #                       ...
         #                   }
         #   }, ...
         # ]
 
         data['data'].append(tmp)
-        
+
     # load the GeoJSON boundary file
     # geojson = json.load(open('static/geojson/cb_2018_us_county_500k.json'))
     # geojson_data = json.dumps(geojson) # json formatted string
@@ -170,7 +177,7 @@ def connection(request):
     data = {}
 
     '''
-        TODO: Finish the SQL to query the data, it should be limited to 8 rows. 
+        TODO: Finish the SQL to query the data, it should be limited to 8 rows.
         Then process them to format below:
         Format of data:
         {'n': [xxx, xxx, xxx, xxx],
